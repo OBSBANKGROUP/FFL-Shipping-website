@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Track a shipment — Fast Forward Logistics</title>
+    <meta
+      name="description"
+      content="Track your Fast Forward Logistics freight in real time with a tracking number, bill of lading or container number."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assest/css/style.css" />
+  </head>
+  <body data-page="tracking">
+    <div class="grid-bg" aria-hidden="true"></div>
+    <header class="topbar" id="topbar"></header>
+
+    <main>
+      <section class="page-hero">
+        <div class="page-hero-inner">
+          <p class="breadcrumb"><a href="index.html">Home</a> / Track</p>
+          <p class="eyebrow light">Real-time visibility</p>
+          <h1>Track your freight, end to end</h1>
+          <p>
+            Enter a tracking number, bill of lading or container number to
+            follow your cargo across every port.
+          </p>
+        </div>
+      </section>
+
+      <section class="section tracking-section" id="tracking">
+        <div class="searchBlock" id="searchBlock">
+          <form class="tracker" id="trackForm" autocomplete="off">
+            <div class="field">
+              <span class="field-label"
+                >Tracking&nbsp;/&nbsp;B&#47;L&nbsp;/&nbsp;Container</span
+              >
+              <input
+                id="trackInput"
+                type="text"
+                placeholder="e.g. FFL-2K5-8842"
+                aria-label="Tracking number"
+              />
+            </div>
+            <button type="submit" class="track-btn">
+              Track
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                <path
+                  d="M5 12h13m0 0-5-5m5 5-5 5"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </form>
+          <div class="demo-hints" id="demoHints">
+            <span>Try a sample:</span>
+            <button type="button" data-track="FFL-2K5-8842">
+              FFL-2K5-8842 <em>ocean</em>
+            </button>
+            <button type="button" data-track="FFL-7A1-3390">
+              FFL-7A1-3390 <em>air</em>
+            </button>
+          </div>
+        </div>
+
+        <section id="loading" class="state hidden" aria-live="polite">
+          <div class="spinner" aria-hidden="true"></div>
+          <p>Locating shipment…</p>
+        </section>
+        <section id="notFound" class="state hidden" aria-live="polite">
+          <h2>No shipment found</h2>
+          <p>
+            We couldn't match that number. Check for typos, or use the full
+            tracking number (e.g. <code>FFL-2K5-8842</code>).
+          </p>
+        </section>
+        <section id="errorState" class="state hidden" aria-live="polite">
+          <h2>Couldn't reach tracking</h2>
+          <p id="errorMsg">
+            Something went wrong contacting the tracking service. Try again in a
+            moment.
+          </p>
+        </section>
+        <section id="result" class="result hidden" aria-live="polite"></section>
+      </section>
+
+      <!-- STATUS GUIDE -->
+      <section class="section why">
+        <div class="section-head">
+          <p class="eyebrow reveal">Reading your result</p>
+          <h2 class="section-title reveal" style="--d: 0.06s">
+            What each status means
+          </h2>
+          <p class="section-lead reveal" style="--d: 0.12s">
+            Every shipment moves through the same five milestones, shown as a
+            progress bar on your result.
+          </p>
+        </div>
+        <div class="feature-grid">
+          <div class="feature reveal">
+            <span class="feature-ic"
+              ><svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <path
+                  d="M8 4h8v3H8zM6 7h12v13H6z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
+            <h3>Booked</h3>
+            <p>
+              Your booking is confirmed and equipment is assigned. The reference
+              number is live.
+            </p>
+          </div>
+          <div class="feature reveal" style="--d: 0.06s">
+            <span class="feature-ic"
+              ><svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <path
+                  d="M4 14h16l-2 5H6l-2-5Zm2-1V8h5m0 5V4l5 3v6"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                  stroke-linecap="round"
+                /></svg
+            ></span>
+            <h3>Departed</h3>
+            <p>
+              Cargo has left the origin port or airport in Iraq on its vessel or
+              flight.
+            </p>
+          </div>
+          <div class="feature reveal" style="--d: 0.12s">
+            <span class="feature-ic"
+              ><svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="9"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                />
+                <path
+                  d="M3 12h18"
+                  stroke="currentColor"
+                  stroke-width="1.4"
+                /></svg
+            ></span>
+            <h3>In transit</h3>
+            <p>
+              On the water or in the air, including any transshipment stops
+              along the way.
+            </p>
+          </div>
+          <div class="feature reveal">
+            <span class="feature-ic"
+              ><svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <path
+                  d="M12 3l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V6z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="m9 12 2 2 4-4"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
+            <h3>Customs</h3>
+            <p>
+              Arrived at destination and clearing customs. Out-for-delivery also
+              shows here.
+            </p>
+          </div>
+          <div class="feature reveal" style="--d: 0.06s">
+            <span class="feature-ic"
+              ><svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <path
+                  d="M3 10 12 4l9 6v10H3z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="m8.5 14 2.2 2.2L15.5 11"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
+            <h3>Delivered</h3>
+            <p>
+              Handed over at the final address, with proof of delivery logged to
+              the shipment.
+            </p>
+          </div>
+          <div class="feature reveal" style="--d: 0.12s">
+            <span class="feature-ic"
+              ><svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <path
+                  d="M12 8v5m0 3h.01M12 3l9 16H3z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
+            <h3>Delayed / exception</h3>
+            <p>
+              Something needs attention — weather, a port hold or a document.
+              Our control tower is already on it.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section testimonials">
+        <div class="section-head">
+          <p class="eyebrow reveal">Tracking help</p>
+          <h2 class="section-title reveal" style="--d: 0.06s">
+            Common questions
+          </h2>
+        </div>
+        <div class="faq reveal">
+          <details>
+            <summary>What can I enter in the search box?</summary>
+            <p>
+              Your Fast Forward tracking number (e.g. FFL-2K5-8842), the bill of
+              lading, or the container number — any one of them will find your
+              shipment.
+            </p>
+          </details>
+          <details>
+            <summary>My number isn't found — what now?</summary>
+            <p>
+              Check for typos and make sure you're using the full number. Newly
+              booked shipments can take a short while to appear. If it still
+              won't show, contact us and we'll look it up.
+            </p>
+          </details>
+          <details>
+            <summary>How often does the status update?</summary>
+            <p>
+              Milestones update as carriers report them — usually at departure,
+              each transshipment, arrival and customs. Estimated delivery
+              adjusts automatically as the journey progresses.
+            </p>
+          </details>
+          <details>
+            <summary>Can I share tracking with my customer?</summary>
+            <p>
+              Yes — send them the link with the number attached, like
+              <code>tracking.html?track=FFL-2K5-8842</code>, and it opens
+              straight to the result.
+            </p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer" id="siteFooter"></footer>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assest/js/config.js"></script>
+    <script src="assest/js/main.js"></script>
+    <script src="assest/js/app.js"></script>
+  </body>
+</html>

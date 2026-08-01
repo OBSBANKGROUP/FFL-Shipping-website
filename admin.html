@@ -1,0 +1,2341 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Admin — Fast Forward Logistics</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --ink: #0b1f33;
+        --ink2: #16324a;
+        --paper: #f5f6f4;
+        --white: #fff;
+        --amber: #f2a104;
+        --amber-dk: #c07e00;
+        --teal: #2a9d8f;
+        --alert: #d64545;
+        --muted: #7a8a99;
+        --muted-dk: #516478;
+        --line: rgba(22, 50, 74, 0.12);
+        --r: 12px;
+        --r-sm: 8px;
+        --shadow: 0 14px 34px -18px rgba(11, 31, 51, 0.18);
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+        -webkit-font-smoothing: antialiased;
+        line-height: 1.55;
+      }
+
+      /* topbar */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: var(--ink);
+        height: 58px;
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        gap: 20px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+      }
+      .topbar-title {
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .topbar-title svg {
+        color: var(--amber);
+      }
+      .topbar-badge {
+        font-size: 10px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 3px 9px;
+        border-radius: 5px;
+        background: rgba(242, 161, 4, 0.18);
+        color: var(--amber);
+        margin-left: auto;
+      }
+      .admin-nav {
+        display: flex;
+        gap: 2px;
+        margin-left: 12px;
+      }
+      .admin-nav button {
+        border: 0;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.55);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        text-transform: uppercase;
+        transition:
+          background 0.15s,
+          color 0.15s;
+        white-space: nowrap;
+      }
+      .admin-nav button:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+      .admin-nav button.active {
+        background: rgba(242, 161, 4, 0.2);
+        color: var(--amber);
+      }
+
+      /* layout */
+      .wrap {
+        max-width: 1160px;
+        margin: 0 auto;
+        padding: 28px 24px;
+      }
+      .sec {
+        display: none;
+      }
+      .sec.active {
+        display: block;
+        animation: fadeUp 0.3s var(--ease);
+      }
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .note {
+        background: rgba(242, 161, 4, 0.1);
+        border: 1px solid rgba(242, 161, 4, 0.35);
+        border-radius: var(--r-sm);
+        padding: 11px 16px;
+        font-size: 13px;
+        color: var(--ink2);
+        margin-bottom: 22px;
+      }
+      .note strong {
+        color: var(--ink);
+      }
+
+      /* top row */
+      .top-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr) 1.6fr;
+        gap: 14px;
+        margin-bottom: 26px;
+        align-items: start;
+      }
+      .stat-card {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: 20px 22px;
+        box-shadow: var(--shadow);
+        text-align: center;
+      }
+      .stat-num {
+        display: block;
+        font-size: 36px;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.5px;
+        color: var(--ink);
+      }
+      .stat-num.amber {
+        color: var(--amber-dk);
+      }
+      .stat-num.teal {
+        color: var(--teal);
+      }
+      .stat-num.alert {
+        color: var(--alert);
+      }
+      .stat-lbl {
+        display: block;
+        font-size: 10px;
+        letter-spacing: 0.9px;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-top: 7px;
+      }
+
+      /* chart card */
+      .chart-card {
+        background: var(--ink);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        padding: 18px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background-image: radial-gradient(
+          120% 140% at 100% 0,
+          var(--ink2),
+          var(--ink) 60%
+        );
+      }
+      .chart-card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      .chart-title {
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #fff;
+      }
+      .chart-tabs {
+        display: flex;
+        gap: 4px;
+      }
+      .chart-tab {
+        border: 0;
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        text-transform: uppercase;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .chart-tab.active {
+        background: var(--amber);
+        color: var(--ink);
+      }
+      .chart-body {
+        position: relative;
+        height: 80px;
+      }
+      canvas#rateChart {
+        width: 100% !important;
+        height: 80px !important;
+      }
+      .chart-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+      }
+      .chart-rate {
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--amber);
+        letter-spacing: -0.3px;
+      }
+      .chart-sub {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.45);
+      }
+      .chart-trend {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--teal);
+      }
+      .chart-trend.down {
+        color: var(--alert);
+      }
+
+      /* section head / filters */
+      .sec-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .sec-head h2 {
+        font-size: 20px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .filters {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .filters button {
+        font-size: 11px;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        padding: 5px 12px;
+        border-radius: 7px;
+        border: 1px solid var(--line);
+        background: var(--paper);
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .filters button:hover {
+        border-color: var(--ink);
+        color: var(--ink);
+      }
+      .filters button.active {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+      }
+
+      /* ship cards */
+      .ship-list {
+        display: grid;
+        gap: 10px;
+      }
+      .ship-card {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--r-sm);
+        padding: 16px 18px;
+        box-shadow: var(--shadow);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 16px;
+        align-items: start;
+        transition: border-color 0.15s;
+      }
+      .ship-card:hover {
+        border-color: rgba(242, 161, 4, 0.4);
+      }
+      .ship-tn {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        margin-bottom: 3px;
+      }
+      .ship-lane {
+        font-size: 13px;
+        color: var(--muted-dk);
+        margin-bottom: 7px;
+      }
+      .ship-party {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-bottom: 2px;
+      }
+      .ship-party strong {
+        color: var(--ink2);
+        font-weight: 600;
+      }
+      .ship-meta {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 7px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .ship-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: stretch;
+        min-width: 126px;
+      }
+
+      /* badges */
+      .badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 5px;
+        background: #e4e8eb;
+        color: var(--muted-dk);
+      }
+      .badge.booked {
+        background: rgba(22, 50, 74, 0.1);
+        color: var(--ink2);
+      }
+      .badge.in_transit,
+      .badge.customs,
+      .badge.out_for_delivery {
+        background: rgba(242, 161, 4, 0.18);
+        color: var(--amber-dk);
+      }
+      .badge.delivered {
+        background: rgba(42, 157, 143, 0.18);
+        color: var(--teal);
+      }
+      .badge.delayed,
+      .badge.exception {
+        background: rgba(214, 69, 69, 0.14);
+        color: var(--alert);
+      }
+
+      /* buttons */
+      .btn {
+        display: block;
+        width: 100%;
+        padding: 7px 10px;
+        border-radius: 7px;
+        border: 1px solid var(--line);
+        background: var(--paper);
+        color: var(--ink2);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+        transition: all 0.15s;
+      }
+      .btn:hover {
+        border-color: var(--ink);
+        color: var(--ink);
+      }
+      .btn.update {
+        background: rgba(42, 157, 143, 0.1);
+        border-color: rgba(42, 157, 143, 0.4);
+        color: var(--teal);
+      }
+      .btn.update:hover {
+        background: rgba(42, 157, 143, 0.2);
+        border-color: var(--teal);
+      }
+      .btn.invoice {
+        background: rgba(11, 31, 51, 0.08);
+        border-color: rgba(11, 31, 51, 0.2);
+        color: var(--ink2);
+      }
+      .btn.invoice:hover {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+      }
+      .btn.danger {
+        color: var(--alert);
+        border-color: rgba(214, 69, 69, 0.3);
+      }
+      .btn.danger:hover {
+        background: rgba(214, 69, 69, 0.1);
+        border-color: var(--alert);
+      }
+
+      /* empty */
+      .empty {
+        color: var(--muted);
+        font-size: 14px;
+        padding: 32px;
+        text-align: center;
+        border: 1px dashed var(--line);
+        border-radius: var(--r-sm);
+      }
+      .empty a {
+        color: var(--amber-dk);
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      /* UPDATE MODAL */
+      .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(11, 31, 51, 0.55);
+        z-index: 200;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .modal-backdrop.open {
+        display: flex;
+        animation: fadeIn 0.2s ease;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .modal {
+        background: var(--white);
+        border-radius: var(--r);
+        padding: 28px;
+        width: 100%;
+        max-width: 520px;
+        box-shadow: 0 24px 60px -10px rgba(11, 31, 51, 0.4);
+        animation: slideUp 0.25s var(--ease);
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(20px);
+          opacity: 0;
+        }
+        to {
+          transform: none;
+          opacity: 1;
+        }
+      }
+      .modal-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .modal-head h3 {
+        font-size: 18px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+      .modal-tn {
+        font-size: 12px;
+        font-family: monospace;
+        font-weight: 600;
+        color: var(--amber-dk);
+        background: rgba(242, 161, 4, 0.1);
+        padding: 3px 9px;
+        border-radius: 5px;
+      }
+      .modal-close {
+        border: 0;
+        background: transparent;
+        font-size: 22px;
+        color: var(--muted);
+        cursor: pointer;
+        line-height: 1;
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+      .modal-close:hover {
+        background: var(--paper);
+      }
+      .modal-fields {
+        display: grid;
+        gap: 14px;
+      }
+      .mfield {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .mfield label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted-dk);
+      }
+      .mfield input,
+      .mfield select,
+      .mfield textarea {
+        padding: 10px 13px;
+        border: 1.5px solid var(--line);
+        border-radius: var(--r-sm);
+        font-family: inherit;
+        font-size: 14px;
+        background: var(--paper);
+        color: var(--ink);
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+        width: 100%;
+      }
+      .mfield textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+      .mfield input:focus,
+      .mfield select:focus,
+      .mfield textarea:focus {
+        outline: 0;
+        border-color: var(--ink);
+        box-shadow: 0 0 0 4px rgba(11, 31, 51, 0.07);
+      }
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .modal-save {
+        flex: 1;
+        padding: 11px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--teal);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .modal-save:hover {
+        background: #228a7d;
+      }
+      .modal-cancel {
+        padding: 11px 18px;
+        border: 1.5px solid var(--line);
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted-dk);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .modal-cancel:hover {
+        border-color: var(--ink);
+        color: var(--ink);
+      }
+      .update-log {
+        margin-top: 18px;
+        border-top: 1px dashed var(--line);
+        padding-top: 14px;
+      }
+      .update-log-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+      .update-log-list {
+        display: grid;
+        gap: 7px;
+        max-height: 140px;
+        overflow-y: auto;
+      }
+      .update-item {
+        font-size: 12.5px;
+        color: var(--ink2);
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 8px;
+      }
+      .update-time {
+        color: var(--muted);
+        font-size: 11px;
+        white-space: nowrap;
+        margin-top: 1px;
+      }
+
+      /* FORM */
+      .form-panel {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: 28px;
+        box-shadow: var(--shadow);
+        max-width: 860px;
+      }
+      .form-panel h2 {
+        font-size: 22px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 4px;
+      }
+      .form-panel .sub {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 20px;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .form-grid.cols3 {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+      .form-grid .full {
+        grid-column: 1/-1;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .field label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted-dk);
+        letter-spacing: 0.2px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .field label .req {
+        color: var(--alert);
+      }
+      .field label .auto-tag {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        background: rgba(42, 157, 143, 0.12);
+        color: var(--teal);
+        padding: 2px 7px;
+        border-radius: 4px;
+      }
+      .field input,
+      .field select,
+      .field textarea {
+        padding: 10px 13px;
+        border: 1.5px solid var(--line);
+        border-radius: var(--r-sm);
+        font-family: inherit;
+        font-size: 14px;
+        background: var(--paper);
+        color: var(--ink);
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+        width: 100%;
+      }
+      .field textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+      .field input:focus,
+      .field select:focus,
+      .field textarea:focus {
+        outline: 0;
+        border-color: var(--ink);
+        box-shadow: 0 0 0 4px rgba(11, 31, 51, 0.07);
+      }
+      .field input.auto-gen {
+        background: rgba(42, 157, 143, 0.05);
+        border-color: rgba(42, 157, 143, 0.3);
+        color: var(--ink2);
+        font-family: monospace;
+        font-size: 13px;
+        letter-spacing: 0.4px;
+      }
+      .field input[readonly].auto-gen {
+        cursor: default;
+      }
+      .fsec {
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--amber-dk);
+        margin: 24px 0 12px;
+        padding-top: 16px;
+        border-top: 1px dashed var(--line);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      /* charge fields */
+      .charge-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 14px;
+        margin-top: 2px;
+      }
+      .charge-total {
+        background: var(--ink);
+        border-color: var(--ink) !important;
+        color: var(--amber) !important;
+        font-weight: 700 !important;
+        font-size: 15px !important;
+      }
+      /* event rows */
+      .ev-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 22px 0 10px;
+      }
+      .ev-head h3 {
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .ev-rows {
+        display: grid;
+        gap: 8px;
+      }
+      .ev-row {
+        display: grid;
+        grid-template-columns: 185px 1fr 1.4fr auto;
+        gap: 8px;
+        align-items: center;
+        background: rgba(22, 50, 74, 0.03);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 10px;
+      }
+      .ev-row.pending {
+        border-color: rgba(242, 161, 4, 0.3);
+        background: rgba(242, 161, 4, 0.04);
+      }
+      .ev-row.live {
+        border-color: rgba(42, 157, 143, 0.4);
+        background: rgba(42, 157, 143, 0.06);
+      }
+      .ev-row input {
+        padding: 8px 10px;
+        border: 1.5px solid var(--line);
+        border-radius: 7px;
+        font-family: inherit;
+        font-size: 13px;
+        background: var(--white);
+        min-width: 0;
+      }
+      .ev-row input:focus {
+        outline: 0;
+        border-color: var(--ink);
+      }
+      .ev-row .ev-status {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        padding: 2px 7px;
+        border-radius: 4px;
+        white-space: nowrap;
+      }
+      .ev-row .ev-status.live {
+        background: rgba(42, 157, 143, 0.2);
+        color: var(--teal);
+      }
+      .ev-row .ev-status.pending {
+        background: rgba(242, 161, 4, 0.2);
+        color: var(--amber-dk);
+      }
+      .ev-row .ev-status.future {
+        background: rgba(22, 50, 74, 0.1);
+        color: var(--muted-dk);
+      }
+      .ev-del {
+        border: 0;
+        background: rgba(214, 69, 69, 0.12);
+        color: var(--alert);
+        width: 32px;
+        height: 32px;
+        border-radius: 7px;
+        cursor: pointer;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      .ev-del:hover {
+        background: rgba(214, 69, 69, 0.22);
+      }
+      .ev-hint {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 8px;
+        padding: 8px 12px;
+        background: rgba(42, 157, 143, 0.06);
+        border-radius: 6px;
+        border: 1px solid rgba(42, 157, 143, 0.15);
+      }
+      /* form actions */
+      .form-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 24px;
+      }
+      .form-actions button {
+        padding: 9px 18px;
+        border-radius: 8px;
+        border: 0;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        cursor: pointer;
+      }
+      .form-actions .save {
+        background: var(--amber);
+        color: var(--ink);
+      }
+      .form-actions .save:hover {
+        background: var(--amber-dk);
+      }
+      .form-actions .ghost {
+        background: transparent;
+        border: 1.5px solid var(--line);
+        color: var(--muted-dk);
+      }
+      .form-actions .ghost:hover {
+        border-color: var(--ink);
+        color: var(--ink);
+      }
+      .form-actions .cancel {
+        background: transparent;
+        border: 1.5px solid rgba(214, 69, 69, 0.3);
+        color: var(--alert);
+      }
+
+      /* quote items */
+      .quote-item {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--r-sm);
+        padding: 14px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        box-shadow: var(--shadow);
+      }
+      .q-ref {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 3px;
+      }
+      .q-lane {
+        font-size: 13px;
+        color: var(--ink2);
+        margin-bottom: 3px;
+      }
+      .q-meta {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      /* toast */
+      #toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translate(-50%, 130%);
+        background: var(--ink);
+        color: #fff;
+        padding: 12px 22px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 500;
+        box-shadow: var(--shadow);
+        z-index: 999;
+        transition: transform 0.35s var(--ease);
+      }
+      #toast.show {
+        transform: translate(-50%, 0);
+      }
+
+      /* PRINT / INVOICE */
+      @media print {
+        body {
+          background: #fff !important;
+        }
+        .topbar,
+        .admin-nav,
+        .wrap > .sec:not(.active),
+        .note,
+        .sec-head,
+        .filters,
+        .ship-actions,
+        .modal-backdrop,
+        .form-actions,
+        #toast {
+          display: none !important;
+        }
+        .wrap,
+        .sec,
+        .invoice-sheet {
+          padding: 0 !important;
+          margin: 0 !important;
+          max-width: none !important;
+        }
+        .invoice-sheet {
+          display: block !important;
+        }
+      }
+      .invoice-sheet {
+        display: none;
+      }
+
+      @media (max-width: 900px) {
+        .top-row {
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: auto auto;
+        }
+        .chart-card {
+          grid-column: 1/-1;
+        }
+        .form-grid.cols3 {
+          grid-template-columns: 1fr 1fr;
+        }
+        .charge-row {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 800px) {
+        .ship-card {
+          grid-template-columns: 1fr;
+        }
+        .ship-actions {
+          flex-direction: row;
+          flex-wrap: wrap;
+          min-width: 0;
+        }
+        .ship-actions .btn {
+          width: auto;
+          flex: 1;
+          min-width: 80px;
+        }
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+        .form-grid .full {
+          grid-column: 1;
+        }
+        .form-grid.cols3 {
+          grid-template-columns: 1fr;
+        }
+        .ev-row {
+          grid-template-columns: 1fr 1fr;
+          gap: 6px;
+        }
+        .ev-row .ev-time {
+          grid-column: 1/-1;
+        }
+        .ev-row .ev-desc {
+          grid-column: 1/-1;
+        }
+        .charge-row {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 520px) {
+        .topbar {
+          padding: 0 14px;
+        }
+        .wrap {
+          padding: 20px 14px;
+        }
+        .admin-nav button {
+          padding: 6px 10px;
+          font-size: 11px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="topbar-title">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+          <path
+            d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2Zm10-10V7a4 4 0 0 0-8 0v4"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        FFL Admin
+      </div>
+      <nav class="admin-nav">
+        <button data-tab="dashboard" class="active">📦 Dashboard</button>
+        <button data-tab="addShipment">➕ Add Shipment</button>
+        <button data-tab="quotes">💬 Quotes</button>
+      </nav>
+      <span class="topbar-badge">Control Panel</span>
+    </div>
+
+    <div class="wrap">
+      <!-- ══════════════════════════ DASHBOARD ══════════════════════════ -->
+      <div class="sec active" id="sec-dashboard">
+        <div class="note">
+          <strong>Local data.</strong> Shipments saved in this browser appear
+          immediately on the public tracking page. Events show to customers
+          automatically when their scheduled time is reached.
+        </div>
+
+        <div class="top-row">
+          <div class="stat-card">
+            <span class="stat-num" id="st-total">0</span
+            ><span class="stat-lbl">Total</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num amber" id="st-transit">0</span
+            ><span class="stat-lbl">In Transit</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num teal" id="st-done">0</span
+            ><span class="stat-lbl">Delivered</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num alert" id="st-attn">0</span
+            ><span class="stat-lbl">Attention</span>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-head">
+              <span class="chart-title">📈 Revenue</span>
+              <div class="chart-tabs">
+                <button class="chart-tab active" data-range="day">Day</button>
+                <button class="chart-tab" data-range="week">Week</button>
+                <button class="chart-tab" data-range="month">Month</button>
+              </div>
+            </div>
+            <div class="chart-body"><canvas id="rateChart"></canvas></div>
+            <div class="chart-footer">
+              <div>
+                <div class="chart-rate" id="chartRate">$0</div>
+                <div class="chart-sub" id="chartSub">this period</div>
+              </div>
+              <div class="chart-trend" id="chartTrend">— no data</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec-head">
+          <h2>All Shipments</h2>
+          <div class="filters" id="filters">
+            <button class="active" data-f="all">All</button>
+            <button data-f="booked">Booked</button>
+            <button data-f="in_transit">In transit</button>
+            <button data-f="customs">Customs</button>
+            <button data-f="delivered">Delivered</button>
+            <button data-f="delayed">Delayed</button>
+          </div>
+        </div>
+        <div class="ship-list" id="shipList"></div>
+      </div>
+
+      <!-- ══════════════════════════ ADD SHIPMENT ══════════════════════════ -->
+      <div class="sec" id="sec-addShipment">
+        <div class="form-panel">
+          <h2 id="formTitle">Create New Shipment</h2>
+          <p class="sub">
+            Tracking number, container, B/L and flight numbers are
+            auto-generated. Add tracking events with future dates — customers
+            see them automatically as each time is reached.
+          </p>
+          <form id="shipForm" autocomplete="off" onsubmit="return false;">
+            <!-- Auto-generated IDs -->
+            <p class="fsec">Auto-generated references</p>
+            <div class="form-grid cols3">
+              <div class="field">
+                <label
+                  >Tracking number <span class="auto-tag">auto</span></label
+                >
+                <input
+                  type="text"
+                  name="tracking_number"
+                  id="tnField"
+                  readonly
+                  class="auto-gen"
+                  placeholder="FFL-XXX-XXXX"
+                />
+              </div>
+              <div class="field">
+                <label
+                  >Container / AWB no. <span class="auto-tag">auto</span></label
+                >
+                <input
+                  type="text"
+                  name="container_number"
+                  id="containerField"
+                  readonly
+                  class="auto-gen"
+                  placeholder="FFLU·····"
+                />
+              </div>
+              <div class="field">
+                <label
+                  >Bill of lading / flight no.
+                  <span class="auto-tag">auto</span></label
+                >
+                <input
+                  type="text"
+                  name="bill_of_lading"
+                  id="blField"
+                  readonly
+                  class="auto-gen"
+                  placeholder="FFLB·····"
+                />
+              </div>
+            </div>
+
+            <!-- Shipment details -->
+            <p class="fsec">Shipment details</p>
+            <div class="form-grid">
+              <div class="field">
+                <label>Mode</label>
+                <select name="mode" id="modeSelect">
+                  <option value="ocean">Ocean</option>
+                  <option value="air">Air</option>
+                  <option value="road">Road</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Status</label>
+                <select name="status">
+                  <option value="booked">Booked</option>
+                  <option value="in_transit">In transit</option>
+                  <option value="customs">Customs clearance</option>
+                  <option value="out_for_delivery">Out for delivery</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="delayed">Delayed</option>
+                  <option value="exception">Exception</option>
+                </select>
+              </div>
+              <div class="field full">
+                <label>Commodity <span class="req">*</span></label>
+                <input
+                  type="text"
+                  name="commodity"
+                  placeholder="e.g. Fresh dates, machinery parts, textiles"
+                />
+              </div>
+              <div class="field">
+                <label>Weight (kg)</label
+                ><input
+                  type="number"
+                  name="weight_kg"
+                  step="any"
+                  placeholder="9200"
+                />
+              </div>
+              <div class="field">
+                <label>Pieces / packages</label
+                ><input type="number" name="pieces" placeholder="140" />
+              </div>
+              <div class="field">
+                <label>Vessel / flight name</label
+                ><input
+                  type="text"
+                  name="vessel_name"
+                  placeholder="MV Northern Vigour"
+                />
+              </div>
+              <div class="field">
+                <label>Voyage no.</label
+                ><input type="text" name="voyage_number" placeholder="V.001W" />
+              </div>
+            </div>
+
+            <!-- Sender -->
+            <p class="fsec">Sender (shipper)</p>
+            <div class="form-grid">
+              <div class="field">
+                <label>Contact name <span class="req">*</span></label
+                ><input
+                  type="text"
+                  name="shipper_contact"
+                  placeholder="Full name"
+                />
+              </div>
+              <div class="field">
+                <label>Phone</label
+                ><input type="tel" name="shipper_phone" placeholder="+964 …" />
+              </div>
+              <div class="field">
+                <label>Email</label
+                ><input
+                  type="email"
+                  name="shipper_email"
+                  placeholder="sender@company.com"
+                />
+              </div>
+              <div class="field full">
+                <label>Address / origin <span class="req">*</span></label
+                ><input
+                  type="text"
+                  name="origin_port"
+                  placeholder="e.g. Umm Qasr, IQ (IQUQR)"
+                />
+              </div>
+              <div class="field">
+                <label>Departed (ETD)</label
+                ><input type="datetime-local" name="etd" />
+              </div>
+            </div>
+
+            <!-- Receiver -->
+            <p class="fsec">Receiver (consignee)</p>
+            <div class="form-grid">
+              <div class="field">
+                <label>Contact name <span class="req">*</span></label
+                ><input
+                  type="text"
+                  name="consignee_contact"
+                  placeholder="Full name"
+                />
+              </div>
+              <div class="field">
+                <label>Phone</label
+                ><input type="tel" name="consignee_phone" placeholder="+1 …" />
+              </div>
+              <div class="field">
+                <label>Email</label
+                ><input
+                  type="email"
+                  name="consignee_email"
+                  placeholder="receiver@company.com"
+                />
+              </div>
+              <div class="field full">
+                <label>Address / destination <span class="req">*</span></label
+                ><input
+                  type="text"
+                  name="destination_port"
+                  placeholder="e.g. New York, US (USNYC)"
+                />
+              </div>
+              <div class="field">
+                <label>Expected arrival (ETA)</label
+                ><input type="datetime-local" name="eta" />
+              </div>
+            </div>
+
+            <!-- Charges -->
+            <p class="fsec">Charges</p>
+            <div class="charge-row">
+              <div class="field">
+                <label>Shipment charge (USD)</label>
+                <input
+                  type="number"
+                  name="charge_shipment"
+                  id="chargeShip"
+                  step="0.01"
+                  min="0"
+                  placeholder="e.g. 2400.00"
+                />
+              </div>
+              <div class="field">
+                <label>Handling charge (USD)</label>
+                <input
+                  type="number"
+                  name="charge_handling"
+                  id="chargeHandle"
+                  step="0.01"
+                  min="0"
+                  placeholder="e.g. 350.00"
+                />
+              </div>
+              <div class="field">
+                <label>Total charge (auto)</label>
+                <input
+                  type="text"
+                  name="charge_total"
+                  id="chargeTotal"
+                  readonly
+                  class="charge-total"
+                  placeholder="$0.00"
+                />
+              </div>
+            </div>
+
+            <!-- Tracking events -->
+            <div class="ev-head">
+              <h3>
+                Tracking events
+                <span
+                  style="
+                    font-size: 11px;
+                    font-weight: 400;
+                    color: var(--muted);
+                    text-transform: none;
+                    letter-spacing: 0;
+                  "
+                  >— set date &amp; time for each milestone</span
+                >
+              </h3>
+              <button
+                type="button"
+                id="addEventBtn"
+                style="
+                  padding: 5px 14px;
+                  border-radius: 7px;
+                  border: 1.5px solid var(--line);
+                  background: transparent;
+                  color: var(--muted-dk);
+                  font-size: 12px;
+                  font-weight: 600;
+                  cursor: pointer;
+                "
+              >
+                + Add event
+              </button>
+            </div>
+            <div class="ev-rows" id="eventRows"></div>
+            <p class="ev-hint">
+              ⏰ Events with a <strong>past</strong> date/time are visible to
+              the customer immediately. Events with a
+              <strong>future</strong> date/time will appear automatically when
+              that time is reached — no action needed.
+            </p>
+
+            <div class="form-actions">
+              <button type="button" class="save" id="saveBtn">
+                Save shipment
+              </button>
+              <button type="button" class="ghost" id="sampleBtn">
+                Load sample
+              </button>
+              <button type="button" class="ghost" id="clearFormBtn">
+                Clear form
+              </button>
+              <button
+                type="button"
+                class="cancel"
+                id="cancelEditBtn"
+                style="display: none"
+              >
+                ✕ Cancel edit
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════ QUOTES ══════════════════════════ -->
+      <div class="sec" id="sec-quotes">
+        <div class="sec-head">
+          <h2>Quote &amp; Contact Requests</h2>
+          <button
+            id="clearQuotesBtn"
+            class="btn danger"
+            style="width: auto; padding: 7px 14px"
+          >
+            Clear all
+          </button>
+        </div>
+        <div id="quoteList"></div>
+      </div>
+    </div>
+
+    <!-- UPDATE MODAL -->
+    <div class="modal-backdrop" id="updateModal">
+      <div class="modal">
+        <div class="modal-head">
+          <h3>Post update</h3>
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span class="modal-tn" id="modalTN">—</span>
+            <button class="modal-close" id="modalClose">✕</button>
+          </div>
+        </div>
+        <div class="modal-fields">
+          <div class="mfield">
+            <label>Current location / address</label>
+            <input
+              type="text"
+              id="updLocation"
+              placeholder="e.g. Port Said, EG — awaiting berth"
+            />
+          </div>
+          <div class="mfield">
+            <label>New status (optional)</label>
+            <select id="updStatus">
+              <option value="">— keep current —</option>
+              <option value="booked">Booked</option>
+              <option value="in_transit">In transit</option>
+              <option value="customs">Customs clearance</option>
+              <option value="out_for_delivery">Out for delivery</option>
+              <option value="delivered">Delivered</option>
+              <option value="delayed">Delayed</option>
+              <option value="exception">Exception</option>
+            </select>
+          </div>
+          <div class="mfield">
+            <label
+              >Update message <span style="color: var(--alert)">*</span></label
+            >
+            <textarea
+              id="updNote"
+              placeholder="Describe what happened — e.g. vessel delayed at Suez, new ETA is …"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-save" id="modalSave">Post update</button>
+          <button class="modal-cancel" id="modalCancel">Cancel</button>
+        </div>
+        <div class="update-log" id="updateLog" style="display: none">
+          <p class="update-log-title">Recent events on this shipment</p>
+          <div class="update-log-list" id="updateLogList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVOICE PRINT SHEET (hidden, shown only on print) -->
+    <div class="invoice-sheet" id="invoiceSheet"></div>
+
+    <div id="toast"></div>
+
+    <script>
+      (() => {
+        "use strict";
+        const SK = "ffl_shipments",
+          QK = "ffl_quotes";
+        const load = (k) => {
+          try {
+            return JSON.parse(localStorage.getItem(k) || "[]");
+          } catch {
+            return [];
+          }
+        };
+        const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+        const $ = (id) => document.getElementById(id);
+        const esc = (s) =>
+          String(s ?? "").replace(
+            /[&<>"']/g,
+            (c) =>
+              ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;",
+              })[c],
+          );
+        const money = (n) =>
+          n != null && n !== ""
+            ? "$" +
+              Number(n).toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })
+            : "—";
+        const fDate = (iso) =>
+          !iso
+            ? "—"
+            : new Date(iso).toLocaleDateString(undefined, {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              });
+        const fDT = (iso) =>
+          !iso
+            ? "—"
+            : new Date(iso).toLocaleString(undefined, {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+        const toISO = (v) => (v ? new Date(v).toISOString() : null);
+        const toInp = (iso) =>
+          iso ? new Date(iso).toISOString().slice(0, 16) : "";
+
+        function toast(msg) {
+          const t = $("toast");
+          t.textContent = msg;
+          t.classList.add("show");
+          setTimeout(() => t.classList.remove("show"), 3000);
+        }
+
+        /* ── generators ── */
+        const rnd = (chars, n) =>
+          Array.from(
+            { length: n },
+            () => chars[Math.floor(Math.random() * chars.length)],
+          ).join("");
+        const NUM = "0123456789",
+          AZ = "ABCDEFGHJKLMNPQRSTUVWXYZ",
+          AN = AZ + NUM;
+        function genTN() {
+          const used = new Set(load(SK).map((s) => s.tracking_number));
+          let tn;
+          do {
+            tn = `FFL-${rnd(AN, 3)}-${rnd(AN, 4)}`;
+          } while (used.has(tn));
+          return tn;
+        }
+        function genContainer(mode) {
+          if (mode === "air") return "AWB-" + rnd(NUM, 3) + "-" + rnd(NUM, 8);
+          return "FFLU" + rnd(NUM, 7);
+        }
+        function genBL(mode) {
+          if (mode === "air") return "FFL" + rnd(AN, 2) + rnd(NUM, 6);
+          return "FFLB" + rnd(AZ, 2) + rnd(NUM, 6);
+        }
+        function refreshAutoFields(isNew = false) {
+          const mode = $("modeSelect").value;
+          if (isNew) {
+            $("tnField").value = genTN();
+            $("containerField").value = genContainer(mode);
+            $("blField").value = genBL(mode);
+          } else {
+            // only regen container/BL when mode changes and they still look like auto values
+            const cn = $("containerField").value,
+              bl = $("blField").value;
+            if (!cn || cn.startsWith("FFLU") || cn.startsWith("AWB-"))
+              $("containerField").value = genContainer(mode);
+            if (!bl || bl.startsWith("FFLB") || bl.startsWith("FFL"))
+              $("blField").value = genBL(mode);
+          }
+        }
+        $("modeSelect").addEventListener("change", () =>
+          refreshAutoFields(false),
+        );
+
+        /* ── charge auto-total ── */
+        function calcTotal() {
+          const s = parseFloat($("chargeShip").value) || 0;
+          const h = parseFloat($("chargeHandle").value) || 0;
+          $("chargeTotal").value = s + h > 0 ? "$" + (s + h).toFixed(2) : "";
+        }
+        $("chargeShip").addEventListener("input", calcTotal);
+        $("chargeHandle").addEventListener("input", calcTotal);
+
+        /* ── status meta ── */
+        const STATUSES = [
+          { v: "booked", l: "Booked" },
+          { v: "in_transit", l: "In transit" },
+          { v: "customs", l: "Customs" },
+          { v: "out_for_delivery", l: "Out for delivery" },
+          { v: "delivered", l: "Delivered" },
+          { v: "delayed", l: "Delayed" },
+          { v: "exception", l: "Exception" },
+        ];
+        const sLabel = (v) => (STATUSES.find((s) => s.v === v) || {}).l || v;
+        const sOpts = (cur) =>
+          STATUSES.map(
+            (s) =>
+              `<option value="${s.v}"${s.v === cur ? " selected" : ""}>${s.l}</option>`,
+          ).join("");
+
+        /* ── tab switching ── */
+        const tabs = document.querySelectorAll("[data-tab]");
+        const secs = document.querySelectorAll(".sec");
+        function showTab(key) {
+          tabs.forEach((t) =>
+            t.classList.toggle("active", t.dataset.tab === key),
+          );
+          secs.forEach((s) => {
+            s.classList.remove("active");
+            if (s.id === "sec-" + key) s.classList.add("active");
+          });
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          if (key === "dashboard") refreshDash();
+          if (key === "quotes") renderQuotes();
+        }
+        tabs.forEach((t) =>
+          t.addEventListener("click", () => showTab(t.dataset.tab)),
+        );
+
+        /* ════════ CHART ════════ */
+        const RATE = { ocean: 0.055, air: 4.2, road: 1.4 };
+        const MDAYS = { ocean: 32, air: 5, road: 12 };
+        function shipRevenue(s) {
+          return (
+            (Number(s.weight_kg) || 0) *
+              (RATE[s.mode] || RATE.ocean) *
+              (MDAYS[s.mode] || 30) +
+            (Number(s.charge_shipment) || 0) +
+            (Number(s.charge_handling) || 0)
+          );
+        }
+        function calcRev(ships, days) {
+          const cut = Date.now() - days * 864e5;
+          return ships
+            .filter(
+              (s) =>
+                new Date(s.created_at || s.etd || Date.now()).getTime() >= cut,
+            )
+            .reduce((a, s) => a + shipRevenue(s), 0);
+        }
+        function sparkPts(ships, days) {
+          const now = Date.now(),
+            step = (days / 7) * 864e5;
+          return Array.from({ length: 7 }, (_, i) => {
+            const from = now - (7 - i) * step,
+              to = now - (6 - i) * step;
+            return ships
+              .filter((s) => {
+                const d = new Date(
+                  s.created_at || s.etd || Date.now(),
+                ).getTime();
+                return d >= from && d < to;
+              })
+              .reduce((a, s) => a + shipRevenue(s), 0);
+          });
+        }
+        let chartRange = "day";
+        const RDAYS = { day: 1, week: 7, month: 30 };
+        function drawChart(pts) {
+          const canvas = $("rateChart");
+          if (!canvas) return;
+          const dpr = window.devicePixelRatio || 1,
+            W = canvas.offsetWidth || 300,
+            H = 80;
+          canvas.width = W * dpr;
+          canvas.height = H * dpr;
+          const ctx = canvas.getContext("2d");
+          ctx.scale(dpr, dpr);
+          ctx.clearRect(0, 0, W, H);
+          const max = Math.max(...pts, 1);
+          const pp = pts.map((v, i) => ({
+            x: (i / (pts.length - 1)) * (W - 4) + 2,
+            y: H - 4 - (v / max) * (H - 12),
+          }));
+          const g = ctx.createLinearGradient(0, 0, 0, H);
+          g.addColorStop(0, "rgba(242,161,4,.35)");
+          g.addColorStop(1, "rgba(242,161,4,0)");
+          ctx.beginPath();
+          ctx.moveTo(pp[0].x, H);
+          pp.forEach((p) => ctx.lineTo(p.x, p.y));
+          ctx.lineTo(pp[pp.length - 1].x, H);
+          ctx.closePath();
+          ctx.fillStyle = g;
+          ctx.fill();
+          ctx.beginPath();
+          pp.forEach((p, i) =>
+            i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y),
+          );
+          ctx.strokeStyle = "rgba(242,161,4,.9)";
+          ctx.lineWidth = 2;
+          ctx.lineJoin = "round";
+          ctx.stroke();
+          pp.forEach((p, i) => {
+            if (pts[i] > 0) {
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+              ctx.fillStyle = "#F2A104";
+              ctx.fill();
+            }
+          });
+        }
+        function updateChart() {
+          const ships = load(SK),
+            days = RDAYS[chartRange];
+          const tot = calcRev(ships, days),
+            prev = calcRev(ships, days * 2) - tot;
+          drawChart(sparkPts(ships, days));
+          $("chartRate").textContent = "$" + Math.round(tot).toLocaleString();
+          $("chartSub").textContent =
+            `est. ${chartRange === "day" ? "today" : chartRange === "week" ? "this week" : "this month"}`;
+          const tr = $("chartTrend");
+          if (tot === 0 && prev === 0) {
+            tr.textContent = "— no data";
+            tr.className = "chart-trend";
+          } else if (prev <= 0) {
+            tr.textContent = "↑ new period";
+            tr.className = "chart-trend";
+          } else {
+            const pct = Math.round(((tot - prev) / prev) * 100);
+            tr.textContent =
+              (pct >= 0 ? "↑ " : "↓ ") + Math.abs(pct) + "% vs prev";
+            tr.className = "chart-trend" + (pct < 0 ? " down" : "");
+          }
+        }
+        document.querySelectorAll(".chart-tab").forEach((b) =>
+          b.addEventListener("click", () => {
+            document
+              .querySelectorAll(".chart-tab")
+              .forEach((x) => x.classList.remove("active"));
+            b.classList.add("active");
+            chartRange = b.dataset.range;
+            updateChart();
+          }),
+        );
+
+        /* ════════ DASHBOARD ════════ */
+        let activeFilter = "all";
+        function refreshDash() {
+          const all = load(SK);
+          $("st-total").textContent = all.length;
+          $("st-transit").textContent = all.filter((s) =>
+            ["in_transit", "customs", "out_for_delivery"].includes(s.status),
+          ).length;
+          $("st-done").textContent = all.filter(
+            (s) => s.status === "delivered",
+          ).length;
+          $("st-attn").textContent = all.filter((s) =>
+            ["delayed", "exception"].includes(s.status),
+          ).length;
+          updateChart();
+          renderShips();
+        }
+        function renderShips() {
+          let all = load(SK);
+          if (activeFilter !== "all")
+            all = all.filter((s) => s.status === activeFilter);
+          const list = $("shipList");
+          if (!all.length) {
+            list.innerHTML = `<div class="empty">${activeFilter === "all" ? 'No shipments yet. <a href="#" id="goAddBtn">Create one →</a>' : "No shipments with this status."}</div>`;
+            const g = $("goAddBtn");
+            if (g)
+              g.addEventListener("click", (e) => {
+                e.preventDefault();
+                showTab("addShipment");
+                resetForm();
+              });
+            return;
+          }
+          const now = Date.now();
+          list.innerHTML = all
+            .map((s) => {
+              const evts = (s.tracking_events || []).filter(
+                (e) => new Date(e.event_time).getTime() <= now,
+              );
+              const pending = (s.tracking_events || []).filter(
+                (e) => new Date(e.event_time).getTime() > now,
+              );
+              return `<div class="ship-card">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+              <p class="ship-tn">${esc(s.tracking_number)}</p>
+              <span class="badge ${esc(s.status)}">${esc(sLabel(s.status))}</span>
+              <span style="font-size:11px;color:var(--muted)">${esc(s.mode || "")}</span>
+              ${pending.length ? `<span style="font-size:10px;background:rgba(242,161,4,.15);color:var(--amber-dk);padding:2px 7px;border-radius:4px;font-weight:600">${pending.length} pending event${pending.length > 1 ? "s" : ""}</span>` : ""}
+            </div>
+            <p class="ship-lane">${esc(s.origin_port || "—")} → ${esc(s.destination_port || "—")}</p>
+            <p class="ship-party"><strong>Sender:</strong> ${esc(s.shipper_contact || "—")}${s.shipper_phone ? " · " + esc(s.shipper_phone) : ""}${s.shipper_email ? " · " + esc(s.shipper_email) : ""}</p>
+            <p class="ship-party"><strong>Receiver:</strong> ${esc(s.consignee_contact || "—")}${s.consignee_phone ? " · " + esc(s.consignee_phone) : ""}${s.consignee_email ? " · " + esc(s.consignee_email) : ""}</p>
+            <p class="ship-meta">
+              ${esc(s.commodity || "")}${s.weight_kg ? " · " + Number(s.weight_kg).toLocaleString() + " kg" : ""}
+              · ETD ${fDate(s.etd)} · ETA ${fDate(s.eta)}
+              · ${evts.length} visible event${evts.length !== 1 ? "s" : ""}
+              ${s.charge_shipment || s.charge_handling ? ` · Total: ${money((parseFloat(s.charge_shipment) || 0) + (parseFloat(s.charge_handling) || 0))}` : ""}
+            </p>
+          </div>
+          <div class="ship-actions">
+            <button class="btn invoice" data-inv="${esc(s.tracking_number)}">🖨 Invoice</button>
+            <button class="btn update" data-upd="${esc(s.tracking_number)}">✏️ Update</button>
+            <a href="tracking.html?track=${encodeURIComponent(s.tracking_number)}" target="_blank" class="btn">Track ↗</a>
+            <button class="btn" data-edit="${esc(s.tracking_number)}">Edit</button>
+            <button class="btn danger" data-del="${esc(s.tracking_number)}">Delete</button>
+          </div>
+        </div>`;
+            })
+            .join("");
+        }
+
+        $("shipList").addEventListener("click", (e) => {
+          const inv = e.target.closest("[data-inv]");
+          if (inv) {
+            printInvoice(inv.dataset.inv);
+            return;
+          }
+          const upd = e.target.closest("[data-upd]");
+          if (upd) {
+            openUpdateModal(upd.dataset.upd);
+            return;
+          }
+          const ed = e.target.closest("[data-edit]");
+          if (ed) {
+            loadEdit(ed.dataset.edit);
+            return;
+          }
+          const dl = e.target.closest("[data-del]");
+          if (dl && confirm(`Delete ${dl.dataset.del}?`)) {
+            save(
+              SK,
+              load(SK).filter((s) => s.tracking_number !== dl.dataset.del),
+            );
+            refreshDash();
+          }
+        });
+        $("filters").addEventListener("click", (e) => {
+          const b = e.target.closest("[data-f]");
+          if (!b) return;
+          activeFilter = b.dataset.f;
+          document
+            .querySelectorAll("#filters button")
+            .forEach((x) => x.classList.toggle("active", x === b));
+          renderShips();
+        });
+
+        /* ════════ INVOICE PRINT ════════ */
+        function printInvoice(tn) {
+          const s = load(SK).find((x) => x.tracking_number === tn);
+          if (!s) return;
+          const total =
+            (parseFloat(s.charge_shipment) || 0) +
+            (parseFloat(s.charge_handling) || 0);
+          const sheet = $("invoiceSheet");
+          sheet.innerHTML = `
+        <style>
+          @media print{
+            .invoice-sheet{display:block!important;font-family:Arial,sans-serif;color:#111;padding:40px 48px;max-width:780px;margin:0 auto;position:relative}
+            .inv-watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);
+              font-size:80px;font-weight:900;color:rgba(11,31,51,.06);text-transform:uppercase;
+              letter-spacing:10px;white-space:nowrap;pointer-events:none;z-index:0}
+            .inv-content{position:relative;z-index:1}
+            .inv-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid #0B1F33}
+            .inv-logo-block{display:flex;align-items:center;gap:12px}
+            .inv-logo-icon{width:48px;height:48px;background:#0B1F33;border-radius:10px;display:flex;align-items:center;justify-content:center}
+            .inv-logo-icon svg{width:28px;height:28px;color:#F2A104}
+            .inv-brand{font-size:22px;font-weight:900;color:#0B1F33;text-transform:uppercase;letter-spacing:.5px}
+            .inv-brand span{color:#F2A104}
+            .inv-tagline{font-size:11px;color:#7a8a99;letter-spacing:.5px;margin-top:2px}
+            .inv-meta{text-align:right;font-size:12px;color:#516478}
+            .inv-meta strong{display:block;font-size:18px;font-weight:900;color:#0B1F33;letter-spacing:.3px;margin-bottom:4px}
+            .inv-meta .inv-date{font-size:11px}
+            .inv-parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;background:#F5F6F4;border-radius:8px;padding:18px}
+            .inv-party h4{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#7a8a99;font-weight:700;margin-bottom:8px}
+            .inv-party p{font-size:13px;color:#0B1F33;margin-bottom:2px;font-weight:500}
+            .inv-party .dim{font-size:12px;color:#516478;font-weight:400}
+            .inv-table{width:100%;border-collapse:collapse;margin-bottom:24px}
+            .inv-table th{background:#0B1F33;color:#fff;font-size:11px;letter-spacing:.5px;text-transform:uppercase;padding:9px 12px;text-align:left}
+            .inv-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid #e8ebee;color:#0B1F33}
+            .inv-table tr:last-child td{border-bottom:none}
+            .inv-totals{margin-left:auto;width:240px}
+            .inv-total-row{display:flex;justify-content:space-between;padding:7px 0;font-size:13px;border-bottom:1px solid #e8ebee}
+            .inv-total-row:last-child{border-bottom:none;font-weight:900;font-size:15px;color:#0B1F33;border-top:2px solid #0B1F33;padding-top:12px;margin-top:4px}
+            .inv-total-row .label{color:#516478;font-weight:400}
+            .inv-total-row:last-child .label{color:#0B1F33;font-weight:900}
+            .inv-events{margin-bottom:28px}
+            .inv-events h4{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#7a8a99;margin-bottom:10px;font-weight:700}
+            .inv-ev{display:flex;gap:14px;font-size:12px;padding:7px 0;border-bottom:1px solid #f0f0f0}
+            .inv-ev .ev-t{color:#516478;white-space:nowrap;min-width:120px}
+            .inv-footer{text-align:center;font-size:11px;color:#7a8a99;padding-top:20px;border-top:1px solid #e8ebee;margin-top:16px}
+          }
+        </style>
+        <div class="inv-watermark">Fast Forward Logistics</div>
+        <div class="inv-content">
+          <div class="inv-header">
+            <div class="inv-logo-block">
+              <div class="inv-logo-icon">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M3 15h13l4-4v4M3 15v3h18v-3M3 15l2-6h9l3 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                  <circle cx="7" cy="19" r="1.4" fill="currentColor"/>
+                  <circle cx="17" cy="19" r="1.4" fill="currentColor"/>
+                </svg>
+              </div>
+              <div>
+                <div class="inv-brand">Fast <span>Forward</span> Logistics</div>
+                <div class="inv-tagline">Ocean · Air · Road · Customs · Warehousing</div>
+              </div>
+            </div>
+            <div class="inv-meta">
+              <strong>SHIPMENT INVOICE</strong>
+              <div>Tracking: <strong style="font-family:monospace">${esc(s.tracking_number)}</strong></div>
+              <div class="inv-date">Issued: ${fDate(new Date().toISOString())}</div>
+              ${s.bill_of_lading ? `<div class="inv-date">B/L: <span style="font-family:monospace">${esc(s.bill_of_lading)}</span></div>` : ""}
+              ${s.container_number ? `<div class="inv-date">Container: <span style="font-family:monospace">${esc(s.container_number)}</span></div>` : ""}
+            </div>
+          </div>
+
+          <div class="inv-parties">
+            <div class="inv-party">
+              <h4>Sender (Shipper)</h4>
+              <p>${esc(s.shipper_contact || "—")}</p>
+              ${s.shipper_phone ? `<p class="dim">${esc(s.shipper_phone)}</p>` : ""}
+              ${s.shipper_email ? `<p class="dim">${esc(s.shipper_email)}</p>` : ""}
+              <p class="dim">${esc(s.origin_port || "—")}</p>
+            </div>
+            <div class="inv-party">
+              <h4>Receiver (Consignee)</h4>
+              <p>${esc(s.consignee_contact || "—")}</p>
+              ${s.consignee_phone ? `<p class="dim">${esc(s.consignee_phone)}</p>` : ""}
+              ${s.consignee_email ? `<p class="dim">${esc(s.consignee_email)}</p>` : ""}
+              <p class="dim">${esc(s.destination_port || "—")}</p>
+            </div>
+          </div>
+
+          <table class="inv-table">
+            <thead><tr><th>Detail</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>Freight mode</td><td>${esc((s.mode || "").toUpperCase())}</td></tr>
+              <tr><td>Commodity</td><td>${esc(s.commodity || "—")}</td></tr>
+              ${s.weight_kg ? `<tr><td>Weight</td><td>${Number(s.weight_kg).toLocaleString()} kg</td></tr>` : ""}
+              ${s.pieces ? `<tr><td>Pieces</td><td>${s.pieces}</td></tr>` : ""}
+              ${s.vessel_name ? `<tr><td>Vessel / Flight</td><td>${esc(s.vessel_name)}</td></tr>` : ""}
+              ${s.voyage_number ? `<tr><td>Voyage no.</td><td>${esc(s.voyage_number)}</td></tr>` : ""}
+              <tr><td>Departed (ETD)</td><td>${fDate(s.etd)}</td></tr>
+              <tr><td>Estimated arrival (ETA)</td><td>${fDate(s.eta)}</td></tr>
+              <tr><td>Status</td><td><strong>${esc(sLabel(s.status))}</strong></td></tr>
+            </tbody>
+          </table>
+
+          ${
+            (s.tracking_events || []).length
+              ? `
+          <div class="inv-events">
+            <h4>Tracking milestones</h4>
+            ${(s.tracking_events || [])
+              .slice()
+              .sort((a, b) => new Date(a.event_time) - new Date(b.event_time))
+              .map(
+                (e) => `
+              <div class="inv-ev"><span class="ev-t">${fDT(e.event_time)}</span><span>${esc(e.location ? e.location + " — " : "")}${esc(e.description)}</span></div>`,
+              )
+              .join("")}
+          </div>`
+              : ""
+          }
+
+          <div class="inv-totals">
+            <div class="inv-total-row"><span class="label">Shipment charge</span><span>${money(s.charge_shipment || 0)}</span></div>
+            <div class="inv-total-row"><span class="label">Handling charge</span><span>${money(s.charge_handling || 0)}</span></div>
+            <div class="inv-total-row"><span class="label">TOTAL DUE</span><span>${money(total)}</span></div>
+          </div>
+
+          <div class="inv-footer">
+            Fast Forward Logistics · hello@fastforward.iq · +964 780 000 0000 · Baghdad, Iraq<br/>
+            Thank you for shipping with us.
+          </div>
+        </div>`;
+          window.print();
+        }
+
+        /* ════════ UPDATE MODAL ════════ */
+        let modalTN = null;
+        function openUpdateModal(tn) {
+          modalTN = tn;
+          $("modalTN").textContent = tn;
+          $("updLocation").value = "";
+          $("updStatus").value = "";
+          $("updNote").value = "";
+          const ship = load(SK).find((s) => s.tracking_number === tn);
+          const evts = ((ship && ship.tracking_events) || [])
+            .slice()
+            .reverse()
+            .slice(0, 8);
+          if (evts.length) {
+            $("updateLog").style.display = "";
+            $("updateLogList").innerHTML = evts
+              .map(
+                (e) =>
+                  `<div class="update-item"><div><div class="update-time">${fDT(e.event_time)}</div>${e.location ? `<div style="font-size:11px;color:var(--muted)">${esc(e.location)}</div>` : ""}</div><div>${esc(e.description)}</div></div>`,
+              )
+              .join("");
+          } else {
+            $("updateLog").style.display = "none";
+          }
+          $("updateModal").classList.add("open");
+          setTimeout(() => $("updNote").focus(), 100);
+        }
+        function closeModal() {
+          $("updateModal").classList.remove("open");
+          modalTN = null;
+        }
+        $("modalClose").addEventListener("click", closeModal);
+        $("modalCancel").addEventListener("click", closeModal);
+        $("updateModal").addEventListener("click", (e) => {
+          if (e.target === $("updateModal")) closeModal();
+        });
+        $("modalSave").addEventListener("click", () => {
+          const note = $("updNote").value.trim();
+          if (!note) {
+            alert("Please enter an update note.");
+            $("updNote").focus();
+            return;
+          }
+          const all = load(SK),
+            ship = all.find((s) => s.tracking_number === modalTN);
+          if (!ship) {
+            closeModal();
+            return;
+          }
+          ship.tracking_events = ship.tracking_events || [];
+          ship.tracking_events.push({
+            event_time: new Date().toISOString(),
+            location: $("updLocation").value.trim(),
+            description: note,
+          });
+          const ns = $("updStatus").value;
+          if (ns) ship.status = ns;
+          save(SK, all);
+          closeModal();
+          refreshDash();
+          toast(`Update posted on ${modalTN}`);
+        });
+
+        /* ════════ ADD / EDIT FORM ════════ */
+        const form = $("shipForm");
+        const tnFld = $("tnField"),
+          evRows = $("eventRows");
+        let editKey = null;
+        const fv = (n) => {
+          const f = form.querySelector(`[name="${n}"]`);
+          return f ? f.value.trim() : "";
+        };
+        const fset = (n, v) => {
+          const f = form.querySelector(`[name="${n}"]`);
+          if (f) f.value = v ?? "";
+        };
+
+        /* event rows with time-state highlighting */
+        function addEvRow(ev = {}) {
+          const d = document.createElement("div");
+          const now = Date.now(),
+            evTime = ev.event_time ? new Date(ev.event_time).getTime() : null;
+          const state = evTime
+            ? evTime <= now
+              ? "live"
+              : "pending"
+            : "pending";
+          d.className = `ev-row ${state}`;
+          d.innerHTML = `
+        <input type="datetime-local" class="ev-time" value="${toInp(ev.event_time)}" placeholder="Date &amp; time"/>
+        <input type="text" class="ev-loc" placeholder="Location (e.g. Baghdad, IQ)" value="${esc(ev.location || "")}"/>
+        <input type="text" class="ev-desc" placeholder="Description (e.g. Departed origin airport)" value="${esc(ev.description || "")}"/>
+        <button type="button" class="ev-del" title="Remove">✕</button>`;
+          d.querySelector(".ev-time").addEventListener("change", function () {
+            const t = this.value ? new Date(this.value).getTime() : null;
+            const s = t ? (t <= Date.now() ? "live" : "pending") : "pending";
+            d.className = `ev-row ${s}`;
+            const badge = d.querySelector(".ev-status");
+            if (badge) {
+              badge.className = "ev-status " + s;
+              badge.textContent = s === "live" ? "Visible now" : "Scheduled";
+            }
+          });
+          d.querySelector(".ev-del").addEventListener("click", () =>
+            d.remove(),
+          );
+          evRows.appendChild(d);
+        }
+        function collectEvs() {
+          return [...evRows.querySelectorAll(".ev-row")]
+            .map((r) => ({
+              event_time:
+                toISO(r.querySelector(".ev-time").value) ||
+                new Date().toISOString(),
+              location: r.querySelector(".ev-loc").value.trim(),
+              description: r.querySelector(".ev-desc").value.trim(),
+            }))
+            .filter((e) => e.description);
+        }
+        function resetForm() {
+          form.reset();
+          refreshAutoFields(true);
+          calcTotal();
+          evRows.innerHTML = "";
+          addEvRow();
+          editKey = null;
+          $("formTitle").textContent = "Create New Shipment";
+          $("cancelEditBtn").style.display = "none";
+        }
+        function fillForm(s) {
+          [
+            "mode",
+            "status",
+            "origin_port",
+            "destination_port",
+            "shipper_contact",
+            "shipper_phone",
+            "shipper_email",
+            "consignee_contact",
+            "consignee_phone",
+            "consignee_email",
+            "vessel_name",
+            "voyage_number",
+            "commodity",
+            "weight_kg",
+            "pieces",
+            "charge_shipment",
+            "charge_handling",
+          ].forEach((n) => fset(n, s[n]));
+          $("tnField").value = s.tracking_number || "";
+          $("containerField").value = s.container_number || "";
+          $("blField").value = s.bill_of_lading || "";
+          fset("etd", toInp(s.etd));
+          fset("eta", toInp(s.eta));
+          calcTotal();
+          evRows.innerHTML = "";
+          (s.tracking_events || [])
+            .slice()
+            .sort((a, b) => new Date(a.event_time) - new Date(b.event_time))
+            .forEach(addEvRow);
+          if (!evRows.children.length) addEvRow();
+        }
+        function loadEdit(tn) {
+          const s = load(SK).find((x) => x.tracking_number === tn);
+          if (!s) return;
+          fillForm(s);
+          editKey = s.tracking_number;
+          $("formTitle").textContent = "Edit Shipment — " + s.tracking_number;
+          $("cancelEditBtn").style.display = "";
+          showTab("addShipment");
+        }
+        $("addEventBtn").addEventListener("click", () => addEvRow());
+        $("clearFormBtn").addEventListener("click", resetForm);
+        $("cancelEditBtn").addEventListener("click", () => {
+          resetForm();
+          showTab("dashboard");
+        });
+
+        $("sampleBtn").addEventListener("click", () => {
+          const now = Date.now(),
+            d = (n) => new Date(now + n * 864e5).toISOString(),
+            h = (n) => new Date(now + n * 36e5).toISOString();
+          fillForm({
+            mode: "ocean",
+            status: "in_transit",
+            origin_port: "Umm Qasr, IQ (IQUQR)",
+            destination_port: "New York, US (USNYC)",
+            shipper_contact: "Ahmed Hassan",
+            shipper_phone: "+964 750 123 4567",
+            shipper_email: "ahmed@basradates.iq",
+            consignee_contact: "Sarah Johnson",
+            consignee_phone: "+1 718 555 0199",
+            consignee_email: "sarah@brooklynfoods.com",
+            vessel_name: "MV Northern Vigour",
+            voyage_number: "V.001W",
+            commodity: "Fresh dates (reefer)",
+            weight_kg: 18450,
+            pieces: 320,
+            charge_shipment: 2600,
+            charge_handling: 380,
+            etd: d(-12),
+            eta: d(16),
+            tracking_events: [
+              {
+                event_time: d(-14),
+                location: "Basra, IQ",
+                description: "Booking confirmed and container assigned",
+              },
+              {
+                event_time: d(-12),
+                location: "Umm Qasr, IQ (IQUQR)",
+                description: "Vessel departed port of loading",
+              },
+              {
+                event_time: d(-5),
+                location: "Jeddah, SA (SAJED)",
+                description: "Transshipment — discharged and reloaded",
+              },
+              {
+                event_time: d(-1),
+                location: "Suez Canal, EG",
+                description: "Vessel in transit through Suez Canal",
+              },
+              {
+                event_time: d(8),
+                location: "Atlantic Ocean",
+                description: "Vessel crossing Atlantic — on schedule",
+              },
+              {
+                event_time: d(16),
+                location: "New York, US (USNYC)",
+                description: "Vessel arrived at destination port",
+              },
+            ],
+          });
+          // give it a fresh auto-generated container & BL since fillForm sets them from sample (empty)
+          $("containerField").value = genContainer("ocean");
+          $("blField").value = genBL("ocean");
+          editKey = null;
+          $("formTitle").textContent = "Create New Shipment";
+        });
+
+        $("saveBtn").addEventListener("click", () => {
+          if (!fv("commodity")) {
+            alert("Please enter the commodity.");
+            return;
+          }
+          if (!fv("shipper_contact")) {
+            alert("Please enter the sender contact name.");
+            return;
+          }
+          if (!fv("consignee_contact")) {
+            alert("Please enter the receiver contact name.");
+            return;
+          }
+          if (!fv("origin_port")) {
+            alert("Please enter the origin address.");
+            return;
+          }
+          if (!fv("destination_port")) {
+            alert("Please enter the destination address.");
+            return;
+          }
+          const tn = editKey || $("tnField").value || genTN();
+          const cs = parseFloat(fv("charge_shipment")) || 0;
+          const ch = parseFloat(fv("charge_handling")) || 0;
+          const rec = {
+            tracking_number: tn,
+            mode: fv("mode"),
+            status: fv("status"),
+            origin_port: fv("origin_port"),
+            destination_port: fv("destination_port"),
+            shipper_contact: fv("shipper_contact"),
+            shipper_phone: fv("shipper_phone"),
+            shipper_email: fv("shipper_email"),
+            consignee_contact: fv("consignee_contact"),
+            consignee_phone: fv("consignee_phone"),
+            consignee_email: fv("consignee_email"),
+            vessel_name: fv("vessel_name"),
+            voyage_number: fv("voyage_number"),
+            container_number:
+              $("containerField").value || genContainer(fv("mode")),
+            bill_of_lading: $("blField").value || genBL(fv("mode")),
+            commodity: fv("commodity"),
+            weight_kg: fv("weight_kg") ? Number(fv("weight_kg")) : null,
+            pieces: fv("pieces") ? Number(fv("pieces")) : null,
+            etd: toISO(form.querySelector("[name=etd]").value),
+            eta: toISO(form.querySelector("[name=eta]").value),
+            charge_shipment: cs || null,
+            charge_handling: ch || null,
+            charge_total: cs + ch || null,
+            tracking_events: collectEvs(),
+            created_at: new Date().toISOString(),
+          };
+          let all = load(SK).filter(
+            (s) => s.tracking_number.toLowerCase() !== tn.toLowerCase(),
+          );
+          all.unshift(rec);
+          save(SK, all);
+          resetForm();
+          toast(`Saved ${tn}`);
+          showTab("dashboard");
+        });
+
+        /* ════════ QUOTES ════════ */
+        function renderQuotes() {
+          const all = load(QK);
+          $("quoteList").innerHTML = !all.length
+            ? '<div class="empty">No quote requests yet.</div>'
+            : all
+                .map(
+                  (q) => `<div class="quote-item">
+            <div>
+              <p class="q-ref">${esc(q.reference || "—")}</p>
+              <p class="q-lane">${esc(q.origin || "Iraq")} → ${esc(q.destination || "—")} · ${esc(q.mode || "")}</p>
+              <p class="q-meta">${q.estimate_low ? "$" + q.estimate_low.toLocaleString() + "–$" + q.estimate_high.toLocaleString() : ""} · ${esc(q.name || "")} · ${esc(q.email || "")}</p>
+            </div>
+            <a href="mailto:${esc(q.email)}" class="btn" style="width:auto;padding:7px 14px">Reply</a>
+          </div>`,
+                )
+                .join("");
+        }
+        $("clearQuotesBtn").addEventListener("click", () => {
+          if (confirm("Clear all?")) {
+            save(QK, []);
+            renderQuotes();
+          }
+        });
+
+        /* ── init ── */
+        resetForm();
+        refreshDash();
+      })();
+    </script>
+  </body>
+</html>

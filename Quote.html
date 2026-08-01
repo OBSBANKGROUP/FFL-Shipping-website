@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Get a quote — Fast Forward Logistics</title>
+    <meta
+      name="description"
+      content="Request an all-in freight quote from Iraq to the USA, Europe or worldwide and get an instant indicative estimate."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assest/css/style.css" />
+  </head>
+  <body data-page="quote">
+    <div class="grid-bg" aria-hidden="true"></div>
+    <header class="topbar" id="topbar"></header>
+
+    <main>
+      <section class="page-hero">
+        <div class="page-hero-inner">
+          <p class="breadcrumb"><a href="index.html">Home</a> / Get a quote</p>
+          <p class="eyebrow light">Ready when you are</p>
+          <h1>Get a freight quote</h1>
+          <p>
+            Tell us about your shipment and get an instant indicative estimate
+            on screen. Our team follows up with a firm all-in quote within one
+            business day.
+          </p>
+        </div>
+      </section>
+
+      <div class="quote-layout">
+        <!-- FORM -->
+        <div class="q-card">
+          <form id="quoteForm" autocomplete="off" novalidate>
+            <div class="q-grid">
+              <div class="q-field">
+                <label>Freight mode <span class="req">*</span></label>
+                <select name="mode">
+                  <option value="">Choose…</option>
+                  <option value="ocean_fcl">
+                    Ocean — FCL (full container)
+                  </option>
+                  <option value="ocean_lcl">
+                    Ocean — LCL (shared container)
+                  </option>
+                  <option value="air">Air freight</option>
+                  <option value="road">Road / rail</option>
+                </select>
+              </div>
+              <div class="q-field">
+                <label>Destination region <span class="req">*</span></label>
+                <select name="region">
+                  <option value="">Choose…</option>
+                  <option value="usa">United States</option>
+                  <option value="europe">Europe</option>
+                  <option value="other">Other / worldwide</option>
+                </select>
+              </div>
+              <div class="q-field">
+                <label>Origin</label>
+                <input
+                  type="text"
+                  name="origin"
+                  placeholder="e.g. Baghdad, Iraq"
+                  value="Iraq"
+                />
+              </div>
+              <div class="q-field">
+                <label>Destination <span class="req">*</span></label>
+                <input
+                  type="text"
+                  name="destination"
+                  placeholder="e.g. New York, USA"
+                />
+              </div>
+              <div class="q-field">
+                <label>Total weight (kg) <span class="req">*</span></label>
+                <input
+                  type="number"
+                  name="weight"
+                  min="1"
+                  step="any"
+                  placeholder="e.g. 1200"
+                />
+              </div>
+              <div class="q-field">
+                <label>Volume (m³, optional)</label>
+                <input
+                  type="number"
+                  name="volume"
+                  min="0"
+                  step="any"
+                  placeholder="e.g. 6"
+                />
+              </div>
+              <div class="q-field full">
+                <label>Commodity</label>
+                <input
+                  type="text"
+                  name="commodity"
+                  placeholder="What are you shipping?"
+                />
+              </div>
+              <div class="q-field">
+                <label>Ready date</label>
+                <input type="date" name="ready_date" />
+              </div>
+              <div class="q-field">
+                <label>Your name <span class="req">*</span></label>
+                <input type="text" name="name" placeholder="Full name" />
+              </div>
+              <div class="q-field">
+                <label>Company</label>
+                <input type="text" name="company" placeholder="Company name" />
+              </div>
+              <div class="q-field">
+                <label>Email <span class="req">*</span></label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="you@company.com"
+                />
+              </div>
+              <div class="q-field full">
+                <label>Phone</label>
+                <input type="tel" name="phone" placeholder="+964 …" />
+              </div>
+              <div class="q-field full">
+                <label>Notes</label>
+                <textarea
+                  name="notes"
+                  placeholder="Dimensions, special handling, target delivery date…"
+                ></textarea>
+              </div>
+            </div>
+            <div class="q-actions">
+              <button type="submit" class="btn btn-amber btn-block">
+                Get my estimate
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                  <path
+                    d="M5 12h13m0 0-5-5m5 5-5 5"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div id="qError" class="q-error hidden"></div>
+          </form>
+          <div id="qResult" class="hidden"></div>
+        </div>
+
+        <!-- ASIDE -->
+        <aside class="quote-aside">
+          <div class="aside-card">
+            <h3>What happens next</h3>
+            <ol class="aside-steps">
+              <li>You get an instant indicative estimate on this page.</li>
+              <li>
+                A coordinator reviews carriers and current rates for your lane.
+              </li>
+              <li>We email a firm all-in quote within one business day.</li>
+              <li>Approve it and we book, collect and start tracking.</li>
+            </ol>
+          </div>
+          <div class="aside-card dark">
+            <h3>Prefer to talk?</h3>
+            <div class="aside-contact">
+              <a href="tel:+9647800000000">+964 780 000 0000</a>
+              <a href="mailto:hello@fastforward.iq">hello@fastforward.iq</a>
+              <span>Cargo Terminal Road, Baghdad, Iraq</span>
+              <span>Sun–Thu, 8:00–18:00 (AST)</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- WHY QUOTE WITH US -->
+      <section class="section why">
+        <div class="section-head">
+          <p class="eyebrow reveal">Why quote with us</p>
+          <h2 class="section-title reveal" style="--d: 0.06s">
+            An honest number, fast
+          </h2>
+        </div>
+        <div class="feature-grid">
+          <div class="feature reveal">
+            <span class="feature-ic"
+              ><svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="9"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                />
+                <path
+                  d="M12 7v5l3 2"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
+            <h3>Instant estimate</h3>
+            <p>
+              See an indicative price and transit time on screen the moment you
+              submit — no waiting to get a feel for cost.
+            </p>
+          </div>
+          <div class="feature reveal" style="--d: 0.06s">
+            <span class="feature-ic"
+              ><svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <path
+                  d="M12 3v18M5 8l7-5 7 5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M5 8v8l7 5 7-5V8"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
+            <h3>All-in pricing</h3>
+            <p>
+              The firm quote we email covers freight, handling and documentation
+              — what we quote is what you pay.
+            </p>
+          </div>
+          <div class="feature reveal" style="--d: 0.12s">
+            <span class="feature-ic"
+              ><svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <path
+                  d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
+            <h3>One-day turnaround</h3>
+            <p>
+              A real coordinator confirms carrier space and sends your firm
+              quote within one business day.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section testimonials">
+        <div class="section-head">
+          <p class="eyebrow reveal">Before you send</p>
+          <h2 class="section-title reveal" style="--d: 0.06s">
+            Quote questions
+          </h2>
+        </div>
+        <div class="faq reveal">
+          <details>
+            <summary>Is the on-screen estimate the final price?</summary>
+            <p>
+              No — it's an indicative range to give you a feel for cost. Your
+              firm all-in quote arrives by email after we check live carrier
+              rates and space for your exact shipment.
+            </p>
+          </details>
+          <details>
+            <summary>What if I don't know the exact weight or volume?</summary>
+            <p>
+              Give your best estimate. We'll confirm the chargeable weight when
+              we quote — for air freight that's the greater of actual and
+              volumetric weight.
+            </p>
+          </details>
+          <details>
+            <summary>Do you quote door-to-door?</summary>
+            <p>
+              Yes. Add pickup and delivery addresses in the notes and we'll
+              include inland haulage on both ends.
+            </p>
+          </details>
+          <details>
+            <summary>Which lanes do you cover?</summary>
+            <p>
+              From Iraq to the USA, across Europe, and worldwide through our
+              agent network — ocean, air and road.
+            </p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer" id="siteFooter"></footer>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assest/js/config.js"></script>
+    <script src="assest/js/main.js"></script>
+    <script src="assest/js/quote.js"></script>
+  </body>
+</html>
