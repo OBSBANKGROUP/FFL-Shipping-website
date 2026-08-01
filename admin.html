@@ -1869,138 +1869,370 @@
           renderShips();
         });
 
-        /* ════════ INVOICE PRINT ════════ */
+        /* ════════ INVOICE PRINT (full-colour, opens new window) ════════ */
         function printInvoice(tn) {
           const s = load(SK).find((x) => x.tracking_number === tn);
           if (!s) return;
-          const total =
-            (parseFloat(s.charge_shipment) || 0) +
-            (parseFloat(s.charge_handling) || 0);
-          const sheet = $("invoiceSheet");
-          sheet.innerHTML = `
-        <style>
-          @media print{
-            .invoice-sheet{display:block!important;font-family:Arial,sans-serif;color:#111;padding:40px 48px;max-width:780px;margin:0 auto;position:relative}
-            .inv-watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);
-              font-size:80px;font-weight:900;color:rgba(11,31,51,.06);text-transform:uppercase;
-              letter-spacing:10px;white-space:nowrap;pointer-events:none;z-index:0}
-            .inv-content{position:relative;z-index:1}
-            .inv-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid #0B1F33}
-            .inv-logo-block{display:flex;align-items:center;gap:12px}
-            .inv-logo-icon{width:48px;height:48px;background:#0B1F33;border-radius:10px;display:flex;align-items:center;justify-content:center}
-            .inv-logo-icon svg{width:28px;height:28px;color:#F2A104}
-            .inv-brand{font-size:22px;font-weight:900;color:#0B1F33;text-transform:uppercase;letter-spacing:.5px}
-            .inv-brand span{color:#F2A104}
-            .inv-tagline{font-size:11px;color:#7a8a99;letter-spacing:.5px;margin-top:2px}
-            .inv-meta{text-align:right;font-size:12px;color:#516478}
-            .inv-meta strong{display:block;font-size:18px;font-weight:900;color:#0B1F33;letter-spacing:.3px;margin-bottom:4px}
-            .inv-meta .inv-date{font-size:11px}
-            .inv-parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;background:#F5F6F4;border-radius:8px;padding:18px}
-            .inv-party h4{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#7a8a99;font-weight:700;margin-bottom:8px}
-            .inv-party p{font-size:13px;color:#0B1F33;margin-bottom:2px;font-weight:500}
-            .inv-party .dim{font-size:12px;color:#516478;font-weight:400}
-            .inv-table{width:100%;border-collapse:collapse;margin-bottom:24px}
-            .inv-table th{background:#0B1F33;color:#fff;font-size:11px;letter-spacing:.5px;text-transform:uppercase;padding:9px 12px;text-align:left}
-            .inv-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid #e8ebee;color:#0B1F33}
-            .inv-table tr:last-child td{border-bottom:none}
-            .inv-totals{margin-left:auto;width:240px}
-            .inv-total-row{display:flex;justify-content:space-between;padding:7px 0;font-size:13px;border-bottom:1px solid #e8ebee}
-            .inv-total-row:last-child{border-bottom:none;font-weight:900;font-size:15px;color:#0B1F33;border-top:2px solid #0B1F33;padding-top:12px;margin-top:4px}
-            .inv-total-row .label{color:#516478;font-weight:400}
-            .inv-total-row:last-child .label{color:#0B1F33;font-weight:900}
-            .inv-events{margin-bottom:28px}
-            .inv-events h4{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#7a8a99;margin-bottom:10px;font-weight:700}
-            .inv-ev{display:flex;gap:14px;font-size:12px;padding:7px 0;border-bottom:1px solid #f0f0f0}
-            .inv-ev .ev-t{color:#516478;white-space:nowrap;min-width:120px}
-            .inv-footer{text-align:center;font-size:11px;color:#7a8a99;padding-top:20px;border-top:1px solid #e8ebee;margin-top:16px}
+          const ship = parseFloat(s.charge_shipment) || 0;
+          const hand = parseFloat(s.charge_handling) || 0;
+          const total = ship + hand;
+          const now = new Date();
+          const issuedFull =
+            now.toLocaleDateString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }) +
+            " " +
+            now.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+          const orderNum =
+            s.tracking_number.replace(/[^0-9]/g, "") ||
+            Math.floor(Math.random() * 9000 + 1000);
+          const modeLabel =
+            s.mode === "air"
+              ? "Air Freight"
+              : s.mode === "road"
+                ? "Road / Rail"
+                : "Ocean Freight";
+          const statusColor =
+            s.status === "delivered"
+              ? "#1a7a4a"
+              : s.status === "delayed" || s.status === "exception"
+                ? "#c0392b"
+                : "#1a6b2a";
+          const USD = (n) =>
+            n > 0
+              ? "USD " +
+                Number(n).toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })
+              : "USD 0.00";
+
+          /* ── barcode strips (CSS only, visual approximation) ── */
+          const barcodeStripes = (() => {
+            const seed = tn.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+            const bars = [];
+            for (let i = 0; i < 52; i++) {
+              const w = ((seed * i * 7 + i * 13) % 3) + 1;
+              bars.push(
+                `<div style="width:${w}px;background:#000;flex-shrink:0"></div>`,
+              );
+            }
+            return bars.join("");
+          })();
+
+          const eventsHtml = (s.tracking_events || []).length
+            ? `
+        <table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:11px">
+          <thead><tr>
+            <th style="background:#f0f4f8;padding:6px 8px;text-align:left;color:#1a5276;border:1px solid #d5e8f0;font-size:10px;letter-spacing:.5px;text-transform:uppercase">Date / Time</th>
+            <th style="background:#f0f4f8;padding:6px 8px;text-align:left;color:#1a5276;border:1px solid #d5e8f0;font-size:10px;letter-spacing:.5px;text-transform:uppercase">Location</th>
+            <th style="background:#f0f4f8;padding:6px 8px;text-align:left;color:#1a5276;border:1px solid #d5e8f0;font-size:10px;letter-spacing:.5px;text-transform:uppercase">Update</th>
+          </tr></thead>
+          <tbody>${(s.tracking_events || [])
+            .slice()
+            .sort((a, b) => new Date(a.event_time) - new Date(b.event_time))
+            .map(
+              (e, i) => `
+            <tr style="background:${i % 2 ? "#fafcfe" : "#fff"}">
+              <td style="padding:6px 8px;border:1px solid #e8f0f5;color:#2c3e50;white-space:nowrap">${fDT(e.event_time)}</td>
+              <td style="padding:6px 8px;border:1px solid #e8f0f5;color:#2c3e50">${esc(e.location || "—")}</td>
+              <td style="padding:6px 8px;border:1px solid #e8f0f5;color:#2c3e50">${esc(e.description)}</td>
+            </tr>`,
+            )
+            .join("")}
+          </tbody>
+        </table>`
+            : '<p style="color:#7f8c8d;font-size:12px;margin:4px 0">No tracking events yet.</p>';
+
+          const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Invoice — ${esc(tn)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;background:#e8f4f0;min-height:100vh;padding:24px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .page{background:#fff;max-width:800px;margin:0 auto;border:1px solid #c8ddd8;border-radius:4px;overflow:hidden;position:relative}
+  /* watermark */
+  .watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);
+    font-size:72px;font-weight:900;color:rgba(11,31,51,.05);text-transform:uppercase;
+    letter-spacing:12px;white-space:nowrap;pointer-events:none;z-index:0;font-family:Arial}
+  .content{position:relative;z-index:1;padding:28px 32px}
+  /* header row */
+  .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+  .logo-img{height:64px;width:auto;object-fit:contain}
+  .logo-fallback{display:flex;align-items:center;gap:10px}
+  .logo-icon{width:54px;height:54px;background:#0B1F33;border-radius:10px;display:flex;align-items:center;justify-content:center}
+  .logo-icon svg{width:30px;height:30px;color:#F2A104}
+  .logo-name{font-size:20px;font-weight:900;color:#0B1F33;text-transform:uppercase;line-height:1.15}
+  .logo-name span{color:#F2A104}
+  .logo-tag{font-size:10px;color:#7a8a99;letter-spacing:.5px;margin-top:3px}
+  /* tracking number headline */
+  .tn-headline{font-size:17px;font-weight:900;color:#c0392b;margin-top:6px;letter-spacing:.3px}
+  /* top-right photo placeholder */
+  .photo-box{width:110px;height:110px;border:1.5px solid #c8ddd8;border-radius:4px;display:flex;align-items:center;justify-content:center;background:#f8fffe;flex-shrink:0}
+  .photo-box span{font-size:9px;color:#aaa;text-align:center}
+  /* company info band */
+  .company-band{text-align:center;padding:14px 20px;margin-bottom:20px}
+  .company-band p{font-size:13px;font-weight:700;color:#1a5276;line-height:1.7}
+  /* from/to section */
+  .parties-row{display:flex;gap:0;margin-bottom:20px;align-items:flex-start}
+  .party{flex:1;padding:12px 0}
+  .party-label{font-size:10px;font-weight:700;color:#1a5276;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+  .party-name{font-size:17px;font-weight:900;color:#1a7a4a;margin-bottom:4px}
+  .party-line{font-size:12px;color:#2c3e50;margin-bottom:2px;line-height:1.5}
+  .party-line strong{font-weight:700;color:#2c3e50}
+  /* barcode */
+  .barcode-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;padding:0 16px;flex-shrink:0}
+  .barcode-bars{display:flex;gap:1.5px;height:50px;align-items:stretch;padding:4px 8px;background:#fff;border:1px solid #eee}
+  .barcode-num{font-size:10px;font-weight:700;letter-spacing:1px;color:#2c3e50;font-family:monospace}
+  /* order info box */
+  .order-box{background:#f5faff;border:1px solid #d0e8f8;border-radius:4px;padding:10px 14px;margin-bottom:20px;font-size:12px}
+  .order-row{display:flex;gap:6px;margin-bottom:3px}
+  .order-row:last-child{margin-bottom:0}
+  .order-key{font-weight:700;color:#2c3e50;min-width:120px}
+  .order-val{color:#2c3e50}
+  .mode-pill{display:inline-block;background:#1a5276;color:#fff;font-size:10px;font-weight:700;
+    padding:2px 8px;border-radius:3px;letter-spacing:.4px;text-transform:uppercase}
+  /* cargo table */
+  .section-title{font-size:10px;font-weight:700;color:#1a5276;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;margin-top:18px;padding-top:14px;border-top:1px solid #e0ecf4}
+  table.cargo{width:100%;border-collapse:collapse;margin-bottom:6px}
+  table.cargo th{background:#1a5276;color:#fff;font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:8px 10px;text-align:left;font-weight:700}
+  table.cargo td{padding:9px 10px;font-size:12px;border-bottom:1px solid #e8f0f5;color:#2c3e50;vertical-align:top}
+  table.cargo tr:last-child td{border-bottom:none}
+  table.cargo tr:nth-child(even) td{background:#fafcff}
+  .status-pill{display:inline-block;padding:3px 9px;border-radius:3px;font-size:10px;font-weight:700;
+    letter-spacing:.4px;text-transform:uppercase;color:#fff;background:${statusColor}}
+  /* bottom 3-column section */
+  .bottom-row{display:flex;gap:20px;margin-top:20px;padding-top:18px;border-top:1px solid #e0ecf4;align-items:flex-start}
+  /* payment */
+  .pay-box{flex:1;min-width:0}
+  .pay-title{font-size:12px;font-weight:700;color:#2c3e50;margin-bottom:8px}
+  .pay-icons{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  .pay-icon{background:#f5f5f5;border:1px solid #e0e0e0;border-radius:4px;padding:4px 10px;
+    font-size:11px;font-weight:700;color:#2c3e50;white-space:nowrap}
+  .pay-icon.visa{color:#1a1f71}.pay-icon.mc{color:#eb001b}.pay-icon.amex{color:#007bc1}
+  .pay-icon.pp{color:#003087}.pay-icon.bank{color:#2c7a4b}
+  .secure-badge{background:#e8f4ee;border:1px solid #b8ddc8;border-radius:4px;padding:6px 10px;
+    font-size:10px;color:#1a6b3a;font-weight:600;margin-top:4px}
+  /* stamp */
+  .stamp-col{flex:1;text-align:center}
+  .stamp-date{font-size:12px;font-weight:700;color:#2c3e50;margin-bottom:8px}
+  .stamp-circle{width:80px;height:80px;border-radius:50%;border:3px solid #1a5276;display:flex;
+    align-items:center;justify-content:center;margin:0 auto;background:#fff;
+    box-shadow:inset 0 0 0 4px rgba(26,82,118,.08)}
+  .stamp-inner{text-align:center}
+  .stamp-inner .s1{font-size:7px;font-weight:900;color:#1a5276;letter-spacing:1px;text-transform:uppercase}
+  .stamp-inner .s2{font-size:11px;font-weight:900;color:#1a5276;font-style:italic;margin:2px 0}
+  .stamp-inner .s3{font-size:6px;color:#1a5276;letter-spacing:.5px}
+  /* stamp duty */
+  .duty-col{flex:0 0 140px;text-align:center}
+  .duty-title{font-size:12px;font-weight:700;color:#2c3e50;margin-bottom:8px}
+  .duty-stamp{width:80px;height:80px;border-radius:50%;border:3px dashed #c0392b;display:flex;
+    align-items:center;justify-content:center;margin:0 auto;background:#fff4f4}
+  .duty-stamp span{font-size:9px;font-weight:900;color:#c0392b;text-transform:uppercase;letter-spacing:1px;text-align:center;line-height:1.3}
+  /* amount due */
+  .amount-section{margin-top:20px;padding-top:16px;border-top:1px solid #e0ecf4}
+  .amount-title{font-size:14px;font-weight:900;color:#2c3e50;margin-bottom:12px}
+  .amount-row{display:flex;gap:0}
+  .amount-col{flex:1;padding:10px 14px;background:#f8fafc;border:1px solid #e0ecf4;margin-right:-1px}
+  .amount-col:last-child{margin-right:0;background:#1a5276}
+  .amount-col .a-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#7a8a99;margin-bottom:4px}
+  .amount-col:last-child .a-label{color:rgba(255,255,255,.7)}
+  .amount-col .a-val{font-size:16px;font-weight:900;color:#2c3e50}
+  .amount-col:last-child .a-val{color:#fff}
+  /* footer */
+  .inv-footer{text-align:center;font-size:10px;color:#7a8a99;padding:14px 20px;background:#f8fafc;border-top:1px solid #e0ecf4;margin-top:20px}
+  /* print controls */
+  .print-bar{max-width:800px;margin:0 auto 16px;display:flex;gap:10px}
+  .print-bar button{padding:10px 22px;border-radius:8px;border:0;font-size:14px;font-weight:700;cursor:pointer}
+  .print-bar .btn-print{background:#1a5276;color:#fff}
+  .print-bar .btn-close{background:#e0e0e0;color:#333}
+  @media print{
+    body{background:#fff!important;padding:0!important}
+    .print-bar{display:none!important}
+    .page{border:none!important;border-radius:0!important;max-width:none!important}
+    .watermark{position:fixed!important}
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  }
+</style>
+</head>
+<body>
+<div class="print-bar">
+  <button class="btn-print" onclick="window.print()">🖨 Print / Save PDF</button>
+  <button class="btn-close" onclick="window.close()">✕ Close</button>
+</div>
+<div class="watermark">Fast Forward Logistics</div>
+<div class="page">
+  <div class="content">
+
+    <!-- HEADER -->
+    <div class="hdr">
+      <div>
+        <img src="assest/images/logo.jpeg" alt="Fast Forward Logistics" class="logo-img"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+        <div class="logo-fallback" style="display:none">
+          <div class="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M3 15h13l4-4v4M3 15v3h18v-3M3 15l2-6h9l3 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="7" cy="19" r="1.4" fill="currentColor"/><circle cx="17" cy="19" r="1.4" fill="currentColor"/></svg>
+          </div>
+          <div>
+            <div class="logo-name">Fast <span>Forward</span> Logistics</div>
+            <div class="logo-tag">Ocean · Air · Road · Customs · Warehousing</div>
+          </div>
+        </div>
+        <p class="tn-headline">Tracking Number: ${esc(tn)}</p>
+      </div>
+      <div class="photo-box"><span>Shipment<br/>Photo</span></div>
+    </div>
+
+    <!-- COMPANY INFO BAND -->
+    <div class="company-band">
+      <p>Fast Forward Logistics Company</p>
+      <p>Address: Baghdad, Iraq · USA · Europe · Worldwide</p>
+      <p>Email: hello@fastforward.iq</p>
+      <p>Website: www.fastforward.iq</p>
+    </div>
+
+    <!-- FROM / TO / BARCODE -->
+    <div class="parties-row">
+      <div class="party">
+        <div class="party-label">From (Sender)</div>
+        <div class="party-name">${esc(s.shipper_contact || "—")}</div>
+        ${s.shipper_phone ? `<div class="party-line"><strong>Phone:</strong> ${esc(s.shipper_phone)}</div>` : ""}
+        ${s.shipper_email ? `<div class="party-line"><strong>Email:</strong> ${esc(s.shipper_email)}</div>` : ""}
+        <div class="party-line"><strong>Address:</strong> ${esc(s.origin_port || "—")}</div>
+        <div class="party-line"><strong>Origin Office:</strong> Baghdad, Iraq</div>
+      </div>
+      <div class="party">
+        <div class="party-label">To (Consignee)</div>
+        <div class="party-name">${esc(s.consignee_contact || "—")}</div>
+        ${s.consignee_phone ? `<div class="party-line"><strong>Phone:</strong> ${esc(s.consignee_phone)}</div>` : ""}
+        ${s.consignee_email ? `<div class="party-line"><strong>Email:</strong> ${esc(s.consignee_email)}</div>` : ""}
+        <div class="party-line"><strong>Address:</strong> ${esc(s.destination_port || "—")}</div>
+        <div class="party-line"><strong>Destination Office:</strong> ${esc(s.destination_port || "—")}</div>
+      </div>
+      <div class="barcode-wrap">
+        <div class="barcode-bars">${barcodeStripes}</div>
+        <div class="barcode-num">${esc(tn)}</div>
+        <div style="margin-top:10px">
+          <div class="order-row"><span class="order-key">Order ID:</span><span class="order-val">${orderNum}</span></div>
+          <div class="order-row"><span class="order-key">Mode:</span><span class="order-val"><span class="mode-pill">${modeLabel}</span></span></div>
+          <div class="order-row"><span class="order-key">Ship Cost:</span><span class="order-val">${USD(ship)}</span></div>
+          <div class="order-row"><span class="order-key">Tracking No:</span><span class="order-val" style="font-family:monospace;font-size:11px">${esc(tn)}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARGO TABLE -->
+    <div class="section-title">Shipment details</div>
+    <table class="cargo">
+      <thead>
+        <tr>
+          <th>Qty</th><th>Product / Commodity</th><th>Status</th><th>Description</th>
+          <th>Shipping Cost</th><th>Handling Cost</th><th>Total Cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>${s.pieces || "1"}</td>
+          <td><strong>${esc(s.commodity || "General cargo")}</strong>${s.weight_kg ? `<br/><span style="color:#7a8a99;font-size:11px">${Number(s.weight_kg).toLocaleString()} kg</span>` : ""}</td>
+          <td><span class="status-pill">${esc(sLabel(s.status))}</span></td>
+          <td>${esc(s.origin_port || "—")} → ${esc(s.destination_port || "—")}${s.vessel_name ? `<br/><span style="color:#7a8a99;font-size:11px">${esc(s.vessel_name)}</span>` : ""}</td>
+          <td style="font-weight:700">${USD(ship)}</td>
+          <td style="font-weight:700">${USD(hand)}</td>
+          <td style="font-weight:900;color:#1a5276">${USD(total)}</td>
+        </tr>
+        ${
+          s.bill_of_lading || s.container_number
+            ? `<tr><td colspan="7" style="font-size:11px;color:#7a8a99;padding:6px 10px">
+          ${s.bill_of_lading ? `B/L: <strong style="font-family:monospace">${esc(s.bill_of_lading)}</strong>  ` : ""}
+          ${s.container_number ? `Container: <strong style="font-family:monospace">${esc(s.container_number)}</strong>  ` : ""}
+          ETD: <strong>${fDate(s.etd)}</strong>  ETA: <strong>${fDate(s.eta)}</strong>
+        </td></tr>`
+            : ""
+        }
+      </tbody>
+    </table>
+
+    <!-- TRACKING EVENTS (if any) -->
+    ${(s.tracking_events || []).length ? `<div class="section-title">Tracking history</div>${eventsHtml}` : ""}
+
+    <!-- BOTTOM ROW: payment · stamp · stamp duty -->
+    <div class="bottom-row">
+      <div class="pay-box">
+        <div class="pay-title">Payment Methods:</div>
+        <div class="pay-icons">
+          <span class="pay-icon visa">VISA</span>
+          <span class="pay-icon mc">MasterCard</span>
+          <span class="pay-icon amex">AMEX</span>
+          <span class="pay-icon pp">PayPal</span>
+          <span class="pay-icon bank">Bank Transfer</span>
+        </div>
+        <div class="secure-badge">🔒 Secured · Safe Shopping</div>
+        <p style="font-size:10px;color:#7a8a99;margin-top:6px">Fast Forward Logistics offers reliable, fast and secure payment options for your convenience.</p>
+      </div>
+
+      <div class="stamp-col">
+        <div class="stamp-date">Official Stamp / ${issuedFull}</div>
+        <div class="stamp-circle">
+          <div class="stamp-inner">
+            <div class="s1">Fast Forward</div>
+            <div class="s2">Logistics</div>
+            <div class="s3">Baghdad · Iraq</div>
+            <div class="s1" style="margin-top:2px">Est. 2009</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="duty-col">
+        <div class="duty-title">Stamp Duty:</div>
+        <div class="duty-stamp">
+          <span>STAMP<br/>DUTY</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AMOUNT DUE -->
+    <div class="amount-section">
+      <div class="amount-title">Amount Due</div>
+      <div class="amount-row">
+        <div class="amount-col">
+          <div class="a-label">Shipping Cost:</div>
+          <div class="a-val">${USD(ship)}</div>
+        </div>
+        <div class="amount-col">
+          <div class="a-label">Handling Cost:</div>
+          <div class="a-val">${USD(hand)}</div>
+        </div>
+        <div class="amount-col">
+          <div class="a-label">Total Amount:</div>
+          <div class="a-val">${USD(total)}</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+  <div class="inv-footer">
+    Fast Forward Logistics · hello@fastforward.iq · +964 780 000 0000 · Baghdad, Iraq &nbsp;|&nbsp;
+    Thank you for choosing Fast Forward Logistics.
+  </div>
+</div>
+</body>
+</html>`;
+
+          const win = window.open("", "_blank", "width=880,height=1100");
+          if (!win) {
+            toast("Pop-up blocked — please allow pop-ups and try again.");
+            return;
           }
-        </style>
-        <div class="inv-watermark">Fast Forward Logistics</div>
-        <div class="inv-content">
-          <div class="inv-header">
-            <div class="inv-logo-block">
-              <div class="inv-logo-icon">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M3 15h13l4-4v4M3 15v3h18v-3M3 15l2-6h9l3 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                  <circle cx="7" cy="19" r="1.4" fill="currentColor"/>
-                  <circle cx="17" cy="19" r="1.4" fill="currentColor"/>
-                </svg>
-              </div>
-              <div>
-                <div class="inv-brand">Fast <span>Forward</span> Logistics</div>
-                <div class="inv-tagline">Ocean · Air · Road · Customs · Warehousing</div>
-              </div>
-            </div>
-            <div class="inv-meta">
-              <strong>SHIPMENT INVOICE</strong>
-              <div>Tracking: <strong style="font-family:monospace">${esc(s.tracking_number)}</strong></div>
-              <div class="inv-date">Issued: ${fDate(new Date().toISOString())}</div>
-              ${s.bill_of_lading ? `<div class="inv-date">B/L: <span style="font-family:monospace">${esc(s.bill_of_lading)}</span></div>` : ""}
-              ${s.container_number ? `<div class="inv-date">Container: <span style="font-family:monospace">${esc(s.container_number)}</span></div>` : ""}
-            </div>
-          </div>
-
-          <div class="inv-parties">
-            <div class="inv-party">
-              <h4>Sender (Shipper)</h4>
-              <p>${esc(s.shipper_contact || "—")}</p>
-              ${s.shipper_phone ? `<p class="dim">${esc(s.shipper_phone)}</p>` : ""}
-              ${s.shipper_email ? `<p class="dim">${esc(s.shipper_email)}</p>` : ""}
-              <p class="dim">${esc(s.origin_port || "—")}</p>
-            </div>
-            <div class="inv-party">
-              <h4>Receiver (Consignee)</h4>
-              <p>${esc(s.consignee_contact || "—")}</p>
-              ${s.consignee_phone ? `<p class="dim">${esc(s.consignee_phone)}</p>` : ""}
-              ${s.consignee_email ? `<p class="dim">${esc(s.consignee_email)}</p>` : ""}
-              <p class="dim">${esc(s.destination_port || "—")}</p>
-            </div>
-          </div>
-
-          <table class="inv-table">
-            <thead><tr><th>Detail</th><th>Value</th></tr></thead>
-            <tbody>
-              <tr><td>Freight mode</td><td>${esc((s.mode || "").toUpperCase())}</td></tr>
-              <tr><td>Commodity</td><td>${esc(s.commodity || "—")}</td></tr>
-              ${s.weight_kg ? `<tr><td>Weight</td><td>${Number(s.weight_kg).toLocaleString()} kg</td></tr>` : ""}
-              ${s.pieces ? `<tr><td>Pieces</td><td>${s.pieces}</td></tr>` : ""}
-              ${s.vessel_name ? `<tr><td>Vessel / Flight</td><td>${esc(s.vessel_name)}</td></tr>` : ""}
-              ${s.voyage_number ? `<tr><td>Voyage no.</td><td>${esc(s.voyage_number)}</td></tr>` : ""}
-              <tr><td>Departed (ETD)</td><td>${fDate(s.etd)}</td></tr>
-              <tr><td>Estimated arrival (ETA)</td><td>${fDate(s.eta)}</td></tr>
-              <tr><td>Status</td><td><strong>${esc(sLabel(s.status))}</strong></td></tr>
-            </tbody>
-          </table>
-
-          ${
-            (s.tracking_events || []).length
-              ? `
-          <div class="inv-events">
-            <h4>Tracking milestones</h4>
-            ${(s.tracking_events || [])
-              .slice()
-              .sort((a, b) => new Date(a.event_time) - new Date(b.event_time))
-              .map(
-                (e) => `
-              <div class="inv-ev"><span class="ev-t">${fDT(e.event_time)}</span><span>${esc(e.location ? e.location + " — " : "")}${esc(e.description)}</span></div>`,
-              )
-              .join("")}
-          </div>`
-              : ""
-          }
-
-          <div class="inv-totals">
-            <div class="inv-total-row"><span class="label">Shipment charge</span><span>${money(s.charge_shipment || 0)}</span></div>
-            <div class="inv-total-row"><span class="label">Handling charge</span><span>${money(s.charge_handling || 0)}</span></div>
-            <div class="inv-total-row"><span class="label">TOTAL DUE</span><span>${money(total)}</span></div>
-          </div>
-
-          <div class="inv-footer">
-            Fast Forward Logistics · hello@fastforward.iq · +964 780 000 0000 · Baghdad, Iraq<br/>
-            Thank you for shipping with us.
-          </div>
-        </div>`;
-          window.print();
+          win.document.write(html);
+          win.document.close();
         }
 
         /* ════════ UPDATE MODAL ════════ */
