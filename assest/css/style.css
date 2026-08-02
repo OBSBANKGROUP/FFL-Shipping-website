@@ -3542,3 +3542,87 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================
+   ALERT FLAG STAGES (injected between Customs and Delivered)
+   ============================================================ */
+
+/* flag stage icon — uses --flag-color CSS variable set inline */
+.fx-stage.fx-stage-flag .fx-ic {
+  border-color: var(--flag-color, #f2a104) !important;
+  color: var(--flag-color, #f2a104) !important;
+  background: color-mix(
+    in srgb,
+    var(--flag-color, #f2a104) 12%,
+    #fff
+  ) !important;
+}
+.fx-stage.fx-stage-flag.done .fx-ic {
+  background: var(--flag-color, #f2a104) !important;
+  border-color: var(--flag-color, #f2a104) !important;
+  color: #fff !important;
+}
+.fx-stage.fx-stage-flag.current .fx-ic {
+  background: var(--flag-color, #f2a104) !important;
+  border-color: var(--flag-color, #f2a104) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 6px
+    color-mix(in srgb, var(--flag-color, #f2a104) 22%, transparent) !important;
+  transform: scale(1.14) !important;
+}
+.fx-stage.fx-stage-flag .fx-stage-label {
+  color: var(--flag-color, #f2a104);
+  font-weight: 700;
+}
+
+/* alert flags notice strip — shown below stepper */
+.fx-flags-notice {
+  display: grid;
+  gap: 10px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+}
+.fx-flag-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--fc, #f2a104) 8%, #fff);
+  border: 1px solid color-mix(in srgb, var(--fc, #f2a104) 30%, transparent);
+}
+.fx-flag-ic {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--fc, #f2a104);
+  color: #fff;
+}
+.fx-flag-ic svg {
+  width: 18px;
+  height: 18px;
+}
+.fx-flag-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 2px;
+}
+.fx-flag-note {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* wider stepper when flags are present — allow wrapping */
+.fx-stages {
+  flex-wrap: wrap;
+  row-gap: 14px;
+}

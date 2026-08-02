@@ -1,7 +1,5 @@
 /* =====================================================================
    Fast Forward Logistics — tracking client (FedEx-style result)
-   Data order:  Supabase (if configured) → local test shipments (admin)
-                → built-in demo shipments
    ===================================================================== */
 (() => {
   "use strict";
@@ -29,16 +27,15 @@
     errorState = el("errorState");
   const errorMsg = el("errorMsg"),
     dataMode = el("dataMode");
-  if (!form) return; // not on the tracking page
+  if (!form) return;
   if (LIVE && dataMode) {
     dataMode.textContent = "live · supabase";
     dataMode.classList.add("live");
   }
 
-  /* ---------- built-in demo shipments (Iraq → USA / Europe) ---------- */
+  /* ---------- demo shipments ---------- */
   const now = Date.now();
   const days = (n) => new Date(now + n * 864e5).toISOString();
-  const hours = (n) => new Date(now + n * 36e5).toISOString();
   const DEMO = {
     "FFL-2K5-8842": {
       tracking_number: "FFL-2K5-8842",
@@ -55,18 +52,13 @@
       commodity: "Fresh dates (reefer)",
       weight_kg: 18450,
       pieces: 320,
-      shipper: "Basra Date Exporters Co.",
-      consignee: "Brooklyn Foods Import LLC",
+      shipper_contact: "Basra Date Exporters Co.",
+      consignee_contact: "Brooklyn Foods Import LLC",
       tracking_events: [
         {
           event_time: days(-14),
           location: "Basra, IQ",
           description: "Booking confirmed and container assigned",
-        },
-        {
-          event_time: days(-13),
-          location: "Umm Qasr, IQ (IQUQR)",
-          description: "Container gated in at origin terminal",
         },
         {
           event_time: days(-12),
@@ -84,6 +76,7 @@
           description: "Vessel in transit through Suez Canal",
         },
       ],
+      alert_flags: [],
     },
     "FFL-7A1-3390": {
       tracking_number: "FFL-7A1-3390",
@@ -100,8 +93,8 @@
       commodity: "Precision machinery parts",
       weight_kg: 1240.5,
       pieces: 46,
-      shipper: "Baghdad Industrial Supply",
-      consignee: "Rhein Handel GmbH",
+      shipper_contact: "Baghdad Industrial Supply",
+      consignee_contact: "Rhein Handel GmbH",
       tracking_events: [
         {
           event_time: days(-2),
@@ -114,20 +107,21 @@
           description: "Flight departed origin airport",
         },
         {
-          event_time: hours(-20),
+          event_time: days(-1),
           location: "Frankfurt, DE (FRA)",
           description: "Flight arrived at destination airport",
         },
         {
-          event_time: hours(-6),
+          event_time: new Date(now - 6 * 36e5).toISOString(),
           location: "Frankfurt, DE (FRA)",
           description: "Held for customs clearance and inspection",
         },
       ],
+      alert_flags: [],
     },
   };
 
-  /* ---------- local test shipments (created on the Admin page) ---------- */
+  /* ---------- local test shipments ---------- */
   function localShipments() {
     try {
       return JSON.parse(localStorage.getItem("ffl_shipments") || "[]");
@@ -136,14 +130,52 @@
     }
   }
 
-  /* ---------- stages ---------- */
-  const STAGES = [
+  /* ─────────────────────────────────────────────────
+     ALERT FLAGS — extra stepper icons between
+     Customs and Delivered, triggered from admin panel
+     ─────────────────────────────────────────────── */
+  const FLAG_TYPES = {
+    weather_delay: {
+      label: "Weather delay",
+      color: "#5b9bd5",
+      icon: `<svg viewBox="0 0 24 24" fill="none"><path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 19v1M8 15v1M12 21v1M12 17v1M16 19v1M16 15v1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+    },
+    demurrage: {
+      label: "Additional demurrage",
+      color: "#e6954a",
+      icon: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 3.5 17 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+    },
+    clearance_fee: {
+      label: "Clearance fee",
+      color: "#2a9d8f",
+      icon: `<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2 10h20" stroke="currentColor" stroke-width="1.6"/><path d="M6 15h4M14 15h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+    },
+    irs_hold: {
+      label: "IRS hold",
+      color: "#c0392b",
+      icon: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    },
+    fbi_fraud: {
+      label: "FBI / Fraud review",
+      color: "#8e44ad",
+      icon: `<svg viewBox="0 0 24 24" fill="none"><path d="M3 3h6l3 6-4 2.5a11 11 0 0 0 4.5 4.5L15 12l6 3v6a2 2 0 0 1-2 2A18 18 0 0 1 1 5a2 2 0 0 1 2-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="m15 9 5-5M20 4h-5M20 4v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    },
+    custom: {
+      label: "Alert",
+      color: "#f2a104",
+      icon: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    },
+  };
+
+  /* ---------- base stages ---------- */
+  const BASE_STAGES = [
     { key: "booked", label: "Booked" },
     { key: "departed", label: "Departed" },
     { key: "transit", label: "In transit" },
     { key: "customs", label: "Customs" },
     { key: "delivered", label: "Delivered" },
   ];
+
   const STATUS = {
     booked: { label: "Booked", stage: 0, tone: "neutral" },
     in_transit: { label: "In transit", stage: 2, tone: "live" },
@@ -272,19 +304,23 @@
   const show = (node) =>
     panels.forEach((p) => p && p.classList.toggle("hidden", p !== node));
 
-  /* ---------- render (FedEx-style) ---------- */
+  /* ─────────────────────────────────────────────────
+     RENDER
+     ─────────────────────────────────────────────── */
   function render(s) {
     const st = STATUS[s.status] || STATUS.booked;
     const isAir = s.mode === "air";
-    const active = st.stage,
-      isDone = st.tone === "done",
-      isAlert = st.tone === "alert";
-    const now = Date.now();
+    const isDone = st.tone === "done";
+    const isAlert = st.tone === "alert";
+
+    /* only show events whose time has passed */
+    const nowMs = Date.now();
     const events = (s.tracking_events || [])
-      .filter((e) => new Date(e.event_time).getTime() <= now)
+      .filter((e) => new Date(e.event_time).getTime() <= nowMs)
       .sort((a, b) => new Date(b.event_time) - new Date(a.event_time));
     const latest = events[0];
 
+    /* headline */
     let hLabel, hDate;
     if (isDone) {
       hLabel = "Delivered";
@@ -301,20 +337,78 @@
       esc(st.label) +
       esc(latest && latest.location ? " · " + latest.location : "");
 
-    const stepsHtml = STAGES.map((stage, i) => {
-      const done = i < active || (isDone && i === active);
-      const current = i === active && !isDone;
-      const cls = [
-        done ? "done" : "",
-        current ? "current" : "",
-        current && isAlert ? "alert" : "",
-      ]
-        .join(" ")
-        .trim();
-      return `<li class="fx-stage ${cls}"><span class="fx-ic">${stageIcon(stage.key, isAir)}</span><span class="fx-stage-label">${esc(stage.label)}</span></li>`;
-    }).join("");
-    const pct = (active / (STAGES.length - 1)) * 100;
+    /* ── build dynamic stages with alert flags injected before Delivered ── */
+    const flags = (s.alert_flags || []).filter((f) => f.active);
+    const STAGES = [...BASE_STAGES];
+    // Insert active flags between customs (index 3) and delivered (index 4)
+    const flagStages = flags.map((f, i) => ({
+      key: "flag_" + i,
+      label:
+        f.custom_label ||
+        (FLAG_TYPES[f.type] ? FLAG_TYPES[f.type].label : "Alert"),
+      flagType: f.type,
+      flagColor: f.custom_label
+        ? "#f2a104"
+        : FLAG_TYPES[f.type]
+          ? FLAG_TYPES[f.type].color
+          : "#f2a104",
+      flagIcon: FLAG_TYPES[f.type]
+        ? FLAG_TYPES[f.type].icon
+        : FLAG_TYPES.custom.icon,
+    }));
 
+    // Build the full stages array: Booked, Departed, In transit, Customs, [flags...], Delivered
+    const fullStages = [
+      ...BASE_STAGES.slice(0, 4),
+      ...flagStages,
+      BASE_STAGES[4],
+    ];
+
+    // Map status stage index to full stages (flags count as "between customs and delivered")
+    let activeIdx = st.stage; // 0-4 base
+    if (activeIdx >= 4 && !isDone) {
+      // between customs and delivered — active is at last flag or customs
+      activeIdx = 3 + flagStages.length; // sits on last flag
+    } else if (isDone) {
+      activeIdx = fullStages.length - 1;
+    } else if (activeIdx > 3) {
+      activeIdx = 3 + flagStages.length;
+    }
+
+    const totalStages = fullStages.length;
+
+    const stepsHtml = fullStages
+      .map((stage, i) => {
+        const isFlag = stage.key.startsWith("flag_");
+        const done = i < activeIdx || (isDone && i === activeIdx);
+        const current = i === activeIdx && !isDone;
+        const cls = [
+          done ? "done" : "",
+          current ? "current" : "",
+          current && isAlert ? "alert" : "",
+        ]
+          .join(" ")
+          .trim();
+
+        let iconHtml,
+          iconStyle = "";
+        if (isFlag) {
+          iconHtml = stage.flagIcon;
+          iconStyle = `--flag-color:${stage.flagColor}`;
+        } else {
+          iconHtml = stageIcon(stage.key, isAir);
+        }
+        const flagCls = isFlag ? " fx-stage-flag" : "";
+        return `<li class="fx-stage${flagCls} ${cls}" style="${iconStyle}">
+        <span class="fx-ic">${iconHtml}</span>
+        <span class="fx-stage-label">${esc(stage.label)}</span>
+      </li>`;
+      })
+      .join("");
+
+    const pct = (activeIdx / (totalStages - 1)) * 100;
+
+    /* travel history */
     const groups = [],
       byDay = new Map();
     events.forEach((e) => {
@@ -332,14 +426,42 @@
             .get(k)
             .map((e) => {
               const isCurrent = latest && e.event_time === latest.event_time;
-              return `<div class="fx-evt ${isCurrent ? "current" : ""}"><div class="fx-evt-time">${timeOf(e.event_time)}</div>
-          <div class="fx-evt-main"><p class="fx-evt-desc">${esc(e.description)}</p>${e.location ? `<p class="fx-evt-loc">${esc(e.location)}</p>` : ""}</div></div>`;
+              return `<div class="fx-evt ${isCurrent ? "current" : ""}">
+          <div class="fx-evt-time">${timeOf(e.event_time)}</div>
+          <div class="fx-evt-main">
+            <p class="fx-evt-desc">${esc(e.description)}</p>
+            ${e.location ? `<p class="fx-evt-loc">${esc(e.location)}</p>` : ""}
+          </div>
+        </div>`;
             })
             .join("");
           return `<div class="fx-day"><p class="fx-day-head">${dayHeader(k + "T00:00:00")}</p>${rows}</div>`;
         })
         .join("") || `<p class="fx-empty">No tracking events yet.</p>`;
 
+    /* alert flags notice strip (shows active flags to customer with note) */
+    const flagsNoticeHtml = flags.length
+      ? `
+      <div class="fx-flags-notice">
+        ${flags
+          .map((f) => {
+            const ft = FLAG_TYPES[f.type] || FLAG_TYPES.custom;
+            const label = f.custom_label || ft.label;
+            const color =
+              f.custom_label && !FLAG_TYPES[f.type] ? "#f2a104" : ft.color;
+            return `<div class="fx-flag-item" style="--fc:${color}">
+            <span class="fx-flag-ic">${ft.icon}</span>
+            <div>
+              <p class="fx-flag-title">${esc(label)}</p>
+              ${f.note ? `<p class="fx-flag-note">${esc(f.note)}</p>` : ""}
+            </div>
+          </div>`;
+          })
+          .join("")}
+      </div>`
+      : "";
+
+    /* shipment facts */
     const facts = [
       [
         "Service",
@@ -376,19 +498,39 @@
             <p class="fx-id-service">${isAir ? "Air freight" : "Ocean freight"}</p>
           </div>
         </div>
-        <div class="fx-stepper"><div class="fx-track"><div class="fx-progress" id="fxProgress"></div></div><ol class="fx-stages">${stepsHtml}</ol></div>
+
+        <div class="fx-stepper">
+          <div class="fx-track"><div class="fx-progress" id="fxProgress"></div></div>
+          <ol class="fx-stages">${stepsHtml}</ol>
+        </div>
+
+        ${flagsNoticeHtml}
+
         <div class="fx-body">
-          <section class="fx-history-wrap"><h3 class="fx-h">Travel history</h3><div class="fx-history">${historyHtml}</div></section>
+          <section class="fx-history-wrap">
+            <h3 class="fx-h">Travel history</h3>
+            <div class="fx-history">${historyHtml}</div>
+          </section>
           <aside class="fx-facts-wrap">
             <div class="fx-route">
-              <div class="fx-route-pt"><span class="fx-route-role">From</span><strong>${esc(s.origin_port)}</strong><span class="fx-route-party">${esc(s.shipper ?? "")}</span></div>
+              <div class="fx-route-pt">
+                <span class="fx-route-role">From</span>
+                <strong>${esc(s.origin_port)}</strong>
+                <span class="fx-route-party">${esc(s.shipper_contact ?? "")}</span>
+              </div>
               <svg class="fx-route-arrow" viewBox="0 0 24 24" fill="none"><path d="M5 12h13m0 0-5-5m5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <div class="fx-route-pt fx-route-to"><span class="fx-route-role">To</span><strong>${esc(s.destination_port)}</strong><span class="fx-route-party">${esc(s.consignee ?? "")}</span></div>
+              <div class="fx-route-pt fx-route-to">
+                <span class="fx-route-role">To</span>
+                <strong>${esc(s.destination_port)}</strong>
+                <span class="fx-route-party">${esc(s.consignee_contact ?? "")}</span>
+              </div>
             </div>
-            <h3 class="fx-h">Shipment facts</h3><dl class="fx-facts">${factsHtml}</dl>
+            <h3 class="fx-h">Shipment facts</h3>
+            <dl class="fx-facts">${factsHtml}</dl>
           </aside>
         </div>
       </div>`;
+
     show(result);
     requestAnimationFrame(() => {
       const bar = el("fxProgress");
@@ -413,7 +555,7 @@
       if (errorMsg)
         errorMsg.textContent =
           (err && err.message ? err.message : "Unexpected error") +
-          ". Check your Supabase URL/key and that schema.sql has been run.";
+          ". Check your Supabase config.";
       show(errorState);
     }
   }
@@ -431,10 +573,12 @@
       handle(btn.dataset.track);
     });
 
-  /* ---------- deep link: tracking.html?track=NUMBER ---------- */
   const param = new URLSearchParams(location.search).get("track");
   if (param) {
     input.value = param;
     handle(param);
   }
+
+  /* expose FLAG_TYPES so admin can read it */
+  window.FFL_FLAG_TYPES = FLAG_TYPES;
 })();

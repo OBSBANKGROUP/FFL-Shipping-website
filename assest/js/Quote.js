@@ -149,6 +149,32 @@
           await supabase.from("quotes").insert([rec]);
         } catch (_) {}
       }
+
+      // Send email notification
+      try {
+        const emailResponse = await fetch("/api/contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: rec.name,
+            email: rec.email,
+            company: rec.company,
+            phone: rec.phone,
+            destination: rec.destination,
+            notes: rec.notes,
+            reference: rec.reference,
+          }),
+        });
+        if (!emailResponse.ok) {
+          console.warn(
+            "Email notification failed:",
+            await emailResponse.text(),
+          );
+        }
+      } catch (emailErr) {
+        console.warn("Email service error:", emailErr.message);
+      }
+
       resultBox.innerHTML = `<div class="q-estimate"><div class="q-est-head"><div>
         <p class="q-est-eyebrow">Message sent</p>
         <p class="q-est-price" style="font-size:26px">Thanks, ${data.name.split(" ")[0]}!</p>
@@ -194,6 +220,37 @@
       } catch (err) {
         console.warn("Supabase quote insert failed:", err && err.message);
       }
+    }
+
+    // Send email notification
+    try {
+      const emailResponse = await fetch("/api/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reference,
+          mode: data.mode,
+          region: data.region,
+          origin: data.origin || "Iraq",
+          destination: data.destination,
+          weight: data.weight,
+          volume: data.volume,
+          commodity: data.commodity,
+          ready_date: data.ready_date,
+          name: data.name,
+          company: data.company,
+          email: data.email,
+          phone: data.phone,
+          notes: data.notes,
+          estimate_low: Math.round(est.low),
+          estimate_high: Math.round(est.high),
+        }),
+      });
+      if (!emailResponse.ok) {
+        console.warn("Email notification failed:", await emailResponse.text());
+      }
+    } catch (emailErr) {
+      console.warn("Email service error:", emailErr.message);
     }
 
     // show the estimate
