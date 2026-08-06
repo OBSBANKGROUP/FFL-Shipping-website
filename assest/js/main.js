@@ -20,9 +20,9 @@
     name: "Fast Forward Logistics",
     logo: "assest/images/logo.jpeg", // e.g. "assest/images/logo.png"
     logoAlt: "Fast Forward Logistics",
-    phone: "+964 780 000 0000",
-    email: "hello@fastforward.iq",
-    address: "Cargo Terminal Road, Baghdad, Iraq",
+    phone: "+1 (943) 210 8427",
+    email: "support@fastforwardlogistics.express",
+    address: "Empire Business Tower, T3, 2nd Floor, Office #5, Erbil, Iraq",
     hoursNote: "Sun–Thu, 8:00–18:00 (AST)",
     nav: [
       { label: "Home", href: "index.html", key: "home" },
@@ -57,8 +57,7 @@
       )
       .join("");
     header.innerHTML = `
-      <a class="brand" href="index.html">${brandMark}
-        <span class="brand-name">Fast&nbsp;Forward <em>Logistics</em></span></a>
+      <a class="brand" href="index.html">${brandMark}</a>
       <nav class="topnav" id="topnav">${links}
         <a href="${SITE.quoteHref}" class="nav-cta${page === "quote" ? " active" : ""}">Get a quote</a></nav>
       <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>`;
@@ -70,9 +69,8 @@
     footer.innerHTML = `
       <div class="footer-grid">
         <div class="footer-brand">
-          <a class="brand" href="index.html">${brandMark}
-            <span class="brand-name">Fast&nbsp;Forward <em>Logistics</em></span></a>
-          <p>Freight forwarding from Iraq to the USA, Europe and worldwide — ocean, air and road, customs and warehousing under one roof.</p>
+          <a class="brand" href="index.html">${brandMark}</a>
+          <p>We provide you with up-to-date information on the latest trends in the industry, technical advances, legislative changes and new security products and services concerning shipping — using air, sea and land transportation to satisfy our customers worldwide.</p>
         </div>
         <div class="footer-col"><h4>Services</h4>
           <a href="svc-ocean.html">Ocean freight</a><a href="svc-air.html">Air freight</a>
@@ -83,12 +81,15 @@
           <a href="quote.html">Get a quote</a><a href="contact.html">Contact</a></div>
         <div class="footer-col"><h4>Get in touch</h4>
           <a href="mailto:${SITE.email}">${SITE.email}</a>
-          <a href="tel:${SITE.phone.replace(/\s/g, "")}">${SITE.phone}</a>
-          <span>${SITE.address}</span><span>${SITE.hoursNote}</span></div>
+          <a href="tel:+19432108427">${SITE.phone}</a>
+          <span style="margin-top:8px;display:block"><strong style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.6">Iraq — Head Office</strong><br/>Empire Business Tower, T3, 2nd Floor, Office #5,<br/>Erbil, Iraq</span>
+          <span style="margin-top:10px;display:block"><strong style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.6">UAE — Dubai</strong><br/>Business Center 1, M Floor, The Meydan Hotel,<br/>Nad Al Sheba, Dubai</span>
+          <span style="margin-top:10px;display:block"><strong style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.6">Turkey — Istanbul</strong><br/>Maltepe Parima Plaza No:8 Kapı 123,<br/>Zeytinburnu / İstanbul</span>
+        </div>
       </div>
       <div class="footer-bar">
-        <span class="mode-badge" id="dataMode">demo data</span>
-        <span>© <span id="year"></span> ${SITE.name}. All rights reserved.</span>
+        <span class="mode-badge" id="dataMode" style="display:none"></span>
+        <span>© <span id="year"></span> Fast Forward Logistics. All rights reserved. Handcrafted by Quakevision Digital Agency</span>
       </div>`;
   }
 
@@ -103,20 +104,13 @@
     });
   }
 
-  /* ---------- data-source badge + year ---------- */
-  const cfg = window.FFL_CONFIG || {};
-  const live =
-    cfg.SUPABASE_URL &&
-    cfg.SUPABASE_ANON_KEY &&
-    !String(cfg.SUPABASE_URL).startsWith("YOUR_") &&
-    !String(cfg.SUPABASE_ANON_KEY).startsWith("YOUR_");
-  const badge = document.getElementById("dataMode");
-  if (badge && live) {
-    badge.textContent = "live · supabase";
-    badge.classList.add("live");
-  }
+  /* ---------- year ---------- */
   const yr = document.getElementById("year");
   if (yr) yr.textContent = new Date().getFullYear();
+  /* hide any demo badges */
+  document
+    .querySelectorAll(".mode-badge, #dataMode")
+    .forEach((el) => (el.style.display = "none"));
 
   /* ---------- sticky nav ---------- */
   const bar = document.getElementById("topbar");

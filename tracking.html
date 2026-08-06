@@ -3,7 +3,88 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Track a shipment — Fast Forward Logistics</title>
+    <title>Track Your Shipment — Fast Forward Logistics</title>
+    <!-- SEO Meta Tags -->
+    <meta
+      name="description"
+      content="Track your Fast Forward Logistics shipment in real time. Enter your tracking number, bill of lading or container number to see live status updates."
+    />
+    <meta
+      name="keywords"
+      content="track shipment Iraq, freight tracking Fast Forward Logistics, shipment status Iraq, live cargo tracking"
+    />
+    <meta name="author" content="Fast Forward Logistics" />
+    <meta name="robots" content="index, follow" />
+    <link
+      rel="canonical"
+      href="https://www.fastforwardlogistics.express/tracking.html"
+    />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Track Your Shipment — Fast Forward Logistics"
+    />
+    <meta
+      property="og:description"
+      content="Track your Fast Forward Logistics shipment in real time. Enter your tracking number, bill of lading or container number to see live status updates."
+    />
+    <meta
+      property="og:url"
+      content="https://www.fastforwardlogistics.express/tracking.html"
+    />
+    <meta
+      property="og:image"
+      content="https://www.fastforwardlogistics.express/assest/images/flayer.jpeg"
+    />
+    <meta property="og:site_name" content="Fast Forward Logistics" />
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Track Your Shipment — Fast Forward Logistics"
+    />
+    <meta
+      name="twitter:description"
+      content="Track your Fast Forward Logistics shipment in real time. Enter your tracking number, bill of lading or container number to see live status updates."
+    />
+    <meta
+      name="twitter:image"
+      content="https://www.fastforwardlogistics.express/assest/images/flayer.jpeg"
+    />
+    <script type="application/ld+json">
+      {{
+        "@context": "https://schema.org",
+        "@type": "FreightForwarder",
+        "name": "Fast Forward Logistics",
+        "description": "International freight forwarding company based in Iraq since 2009. Ocean, air and road freight to the USA, Europe, Dubai and worldwide.",
+        "foundingDate": "2009",
+        "url": "https://www.fastforwardlogistics.express",
+        "logo": "https://www.fastforwardlogistics.express/assest/images/logo.jpeg",
+        "email": "support@fastforwardlogistics.express",
+        "telephone": "+19432108427",
+        "address": {{
+          "@type": "PostalAddress",
+          "streetAddress": "Empire Business Tower, T3, 2nd Floor, Office #5",
+          "addressLocality": "Erbil",
+          "addressCountry": "IQ"
+        }},
+        "sameAs": [],
+        "areaServed": ["IQ","US","GB","DE","FR","AE","TR"],
+        "hasOfferCatalog": {{
+          "@type": "OfferCatalog",
+          "name": "Freight Services",
+          "itemListElement": [
+            {{"@type":"Offer","itemOffered":{{"@type":"Service","name":"Ocean Freight FCL/LCL"}}}},
+            {{"@type":"Offer","itemOffered":{{"@type":"Service","name":"Air Freight"}}}},
+            {{"@type":"Offer","itemOffered":{{"@type":"Service","name":"Road & Rail Freight"}}}},
+            {{"@type":"Offer","itemOffered":{{"@type":"Service","name":"Customs Clearance"}}}},
+            {{"@type":"Offer","itemOffered":{{"@type":"Service","name":"Warehousing & Distribution"}}}},
+            {{"@type":"Offer","itemOffered":{{"@type":"Service","name":"Door to Door Delivery"}}}}
+          ]
+        }}
+      }}
+    </script>
     <meta
       name="description"
       content="Track your Fast Forward Logistics freight in real time with a tracking number, bill of lading or container number."
@@ -43,7 +124,7 @@
               <input
                 id="trackInput"
                 type="text"
-                placeholder="e.g. FFL-2K5-8842"
+                placeholder="Enter your tracking number"
                 aria-label="Tracking number"
               />
             </div>
@@ -60,15 +141,6 @@
               </svg>
             </button>
           </form>
-          <div class="demo-hints" id="demoHints">
-            <span>Try a sample:</span>
-            <button type="button" data-track="FFL-2K5-8842">
-              FFL-2K5-8842 <em>ocean</em>
-            </button>
-            <button type="button" data-track="FFL-7A1-3390">
-              FFL-7A1-3390 <em>air</em>
-            </button>
-          </div>
         </div>
       </section>
 
@@ -89,15 +161,6 @@
             e.preventDefault();
             go();
           });
-          var hints = document.getElementById("demoHints");
-          if (hints)
-            hints.addEventListener("click", function (e) {
-              var b = e.target.closest("[data-track]");
-              if (b) {
-                input.value = b.dataset.track;
-                go(b.dataset.track);
-              }
-            });
         })();
       </script>
 
@@ -246,9 +309,8 @@
           <details>
             <summary>What can I enter in the search box?</summary>
             <p>
-              Your Fast Forward tracking number (e.g. FFL-2K5-8842), the bill of
-              lading, or the container number — any one of them will find your
-              shipment.
+              Your Fast Forward tracking number , the bill of lading, or the
+              container number — any one of them will find your shipment.
             </p>
           </details>
           <details>
@@ -270,8 +332,7 @@
           <details>
             <summary>Can I share tracking with my customer?</summary>
             <p>
-              Yes — send them the link with the number attached, like
-              <code>tracking.html?track=FFL-2K5-8842</code>, and it opens
+              Yes — send them the link with the number attached and it opens
               straight to the result.
             </p>
           </details>

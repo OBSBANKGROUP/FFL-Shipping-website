@@ -4,8 +4,89 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>
-      Fast Forward Logistics — Global Ocean &amp; Air Freight Forwarding
+      Fast Forward Logistics — International Freight Forwarding from Iraq
     </title>
+    <!-- SEO Meta Tags -->
+    <meta
+      name="description"
+      content="Fast Forward Logistics is a trusted Iraqi freight forwarding company since 2009. We ship ocean, air and road freight from Iraq to the USA, Europe, Dubai and worldwide. Get a free quote today."
+    />
+    <meta
+      name="keywords"
+      content="freight forwarding Iraq, shipping from Iraq to USA, international freight Iraq, ocean freight Iraq, air freight Baghdad, logistics company Iraq, Erbil freight forwarder, customs brokerage Iraq, door to door shipping Iraq"
+    />
+    <meta name="author" content="Fast Forward Logistics" />
+    <meta name="robots" content="index, follow" />
+    <link
+      rel="canonical"
+      href="https://www.fastforwardlogistics.express/index.html"
+    />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Fast Forward Logistics — International Freight Forwarding from Iraq"
+    />
+    <meta
+      property="og:description"
+      content="Fast Forward Logistics is a trusted Iraqi freight forwarding company since 2009. We ship ocean, air and road freight from Iraq to the USA, Europe, Dubai and worldwide. Get a free quote today."
+    />
+    <meta
+      property="og:url"
+      content="https://www.fastforwardlogistics.express/index.html"
+    />
+    <meta
+      property="og:image"
+      content="https://www.fastforwardlogistics.express/assest/images/flayer.jpeg"
+    />
+    <meta property="og:site_name" content="Fast Forward Logistics" />
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Fast Forward Logistics — International Freight Forwarding from Iraq"
+    />
+    <meta
+      name="twitter:description"
+      content="Fast Forward Logistics is a trusted Iraqi freight forwarding company since 2009. We ship ocean, air and road freight from Iraq to the USA, Europe, Dubai and worldwide. Get a free quote today."
+    />
+    <meta
+      name="twitter:image"
+      content="https://www.fastforwardlogistics.express/assest/images/flayer.jpeg"
+    />
+    <script type="application/ld+json">
+      {{
+        "@context": "https://schema.org",
+        "@type": "FreightForwarder",
+        "name": "Fast Forward Logistics",
+        "description": "International freight forwarding company based in Iraq since 2009. Ocean, air and road freight to the USA, Europe, Dubai and worldwide.",
+        "foundingDate": "2009",
+        "url": "https://www.fastforwardlogistics.express",
+        "logo": "https://www.fastforwardlogistics.express/assest/images/logo.jpeg",
+        "email": "support@fastforwardlogistics.express",
+        "telephone": "+19432108427",
+        "address": {{
+          "@type": "PostalAddress",
+          "streetAddress": "Empire Business Tower, T3, 2nd Floor, Office #5",
+          "addressLocality": "Erbil",
+          "addressCountry": "IQ"
+        }},
+        "sameAs": [],
+        "areaServed": ["IQ","US","GB","DE","FR","AE","TR"],
+        "hasOfferCatalog": {{
+          "@type": "OfferCatalog",
+          "name": "Freight Services",
+          "itemListElement": [
+            {{"@type":"Offer","itemOffered":{{"@type":"Service","name":"Ocean Freight FCL/LCL"}}}},
+            {{"@type":"Offer","itemOffered":{{"@type":"Service","name":"Air Freight"}}}},
+            {{"@type":"Offer","itemOffered":{{"@type":"Service","name":"Road & Rail Freight"}}}},
+            {{"@type":"Offer","itemOffered":{{"@type":"Service","name":"Customs Clearance"}}}},
+            {{"@type":"Offer","itemOffered":{{"@type":"Service","name":"Warehousing & Distribution"}}}},
+            {{"@type":"Offer","itemOffered":{{"@type":"Service","name":"Door to Door Delivery"}}}}
+          ]
+        }}
+      }}
+    </script>
     <meta
       name="description"
       content="Fast Forward Logistics moves cargo across every ocean and airport with end-to-end tracking, customs clearance, and warehousing."
@@ -17,7 +98,6 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assest/css/style.css" />
-    <link rel="icon" href="assest/images/logo.jpeg" />
   </head>
   <body>
     <div class="grid-bg" aria-hidden="true"></div>
@@ -37,13 +117,13 @@
             <circle cx="17" cy="19" r="1.4" fill="currentColor" />
           </svg>
         </span>
-        <!-- <span class="brand-name">Fast&nbsp;Forward <em>Logistics</em></span> -->
+        <span class="brand-name">Fast&nbsp;Forward <em>Logistics</em></span>
       </a>
       <nav class="topnav" id="topnav">
         <a href="#services">Services</a>
         <a href="#process">How it works</a>
         <a href="tracking.html">Track</a>
-        <a href="About.html">About</a>
+        <a href="about.html">About</a>
         <a href="contact.html">Contact</a>
         <a href="#quote" class="nav-cta">Get a quote</a>
       </nav>
@@ -485,16 +565,6 @@
               </svg>
             </button>
           </form>
-
-          <div class="demo-hints reveal" id="demoHints" style="--d: 0.2s">
-            <span>Try a sample:</span>
-            <button type="button" data-track="FFL-2K5-8842">
-              FFL-2K5-8842 <em>ocean</em>
-            </button>
-            <button type="button" data-track="FFL-7A1-3390">
-              FFL-7A1-3390 <em>air</em>
-            </button>
-          </div>
         </div>
 
         <section id="loading" class="state hidden" aria-live="polite">
@@ -661,11 +731,19 @@
               and we didn't miss a single delivery window.”
             </blockquote>
             <figcaption>
-              <!-- REPLACE with: <img src="images/person-1.jpg" alt="Name"> -->
-              <img src="assest/images/user1.jpeg" alt="Name" />
+              <img
+                src="assest/images/user1.jpeg"
+                alt="Tony Chahal"
+                style="
+                  width: 48px;
+                  height: 48px;
+                  border-radius: 50%;
+                  object-fit: cover;
+                "
+              />
               <div>
                 <strong>Tony Chahal</strong
-                ><span>Supply Chain Lead, Najaf Retail Group</span>
+                ><span>Supply Chain Lead, Accra Retail Group</span>
               </div>
             </figcaption>
           </figure>
@@ -675,8 +753,16 @@
               emails a day. Our team finally trusts the ETA.”
             </blockquote>
             <figcaption>
-              <!-- REPLACE with: <img src="images/person-2.jpg" alt="Name"> -->
-              <img src="assest/images/user2.jpeg" alt="Name" />
+              <img
+                src="assest/images/user2.jpeg"
+                alt="Sandeep Sahej"
+                style="
+                  width: 48px;
+                  height: 48px;
+                  border-radius: 50%;
+                  object-fit: cover;
+                "
+              />
               <div>
                 <strong>Sandeep Sahej</strong
                 ><span>Ops Director, Rhine Valley Imports</span>
@@ -689,8 +775,16 @@
               is the difference for temperature-sensitive cargo.”
             </blockquote>
             <figcaption>
-              <!-- REPLACE with: <img src="images/person-3.jpg" alt="Name"> -->
-              <img src="assest/images/user3.jpeg" alt="Name" />
+              <img
+                src="assest/images/user3.jpeg"
+                alt="Ishu Pundir"
+                style="
+                  width: 48px;
+                  height: 48px;
+                  border-radius: 50%;
+                  object-fit: cover;
+                "
+              />
               <div>
                 <strong>Ishu Pundir</strong
                 ><span>Logistics Manager, Adenta Health</span>
@@ -1040,7 +1134,7 @@
                 <circle cx="17" cy="19" r="1.4" fill="currentColor" />
               </svg>
             </span>
-            <!-- <span class="brand-name">Fast&nbsp;Forward <em>Logistics</em></span> -->
+            <span class="brand-name">Fast&nbsp;Forward <em>Logistics</em></span>
           </a>
           <p>
             Global ocean and air freight forwarding, customs, and warehousing —
@@ -1064,10 +1158,8 @@
         </div>
         <div class="footer-col">
           <h4>Get in touch</h4>
-          <a href="mailto:hello@fastforward.iq"
-            >support@fastforwardlogistics.express</a
-          >
-          <a href="tel:+9647800000000">+1 (943) 210 8427</a>
+          <a href="mailto:hello@fastforward.iq">hello@fastforward.iq</a>
+          <a href="tel:+9647800000000">+964 780 000 0000</a>
           <span style="margin-top: 8px; display: block"
             ><strong
               style="

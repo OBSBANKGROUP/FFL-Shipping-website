@@ -2092,12 +2092,251 @@
           grid-template-columns: 1fr;
         }
       }
+
+      /* ══════════════════════════════════════════════════════
+   LOGIN SCREEN
+══════════════════════════════════════════════════════ */
+      #loginScreen {
+        position: fixed;
+        inset: 0;
+        background: var(--ink);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      #loginScreen.hidden {
+        display: none;
+      }
+      .login-card {
+        background: var(--white);
+        border-radius: 16px;
+        padding: 40px 36px;
+        width: 100%;
+        max-width: 420px;
+        box-shadow: 0 32px 80px rgba(0, 0, 0, 0.4);
+      }
+      .login-logo {
+        text-align: center;
+        margin-bottom: 28px;
+      }
+      .login-logo img {
+        height: 60px;
+        width: auto;
+        object-fit: contain;
+      }
+      .login-logo .login-brand {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--ink);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        margin-top: 10px;
+      }
+      .login-logo .login-sub {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .login-title {
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--ink);
+        text-align: center;
+        margin-bottom: 6px;
+      }
+      .login-subtitle {
+        font-size: 14px;
+        color: var(--muted);
+        text-align: center;
+        margin-bottom: 28px;
+      }
+      .login-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+      .login-field label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--muted-dk);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+      .login-field input {
+        padding: 12px 14px;
+        border: 1.5px solid var(--line);
+        border-radius: 9px;
+        font-family: inherit;
+        font-size: 15px;
+        color: var(--ink);
+        background: var(--paper);
+        transition: border-color 0.2s;
+      }
+      .login-field input:focus {
+        outline: 0;
+        border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.1);
+      }
+      .login-error {
+        background: rgba(214, 69, 69, 0.1);
+        border: 1px solid rgba(214, 69, 69, 0.3);
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: var(--alert);
+        margin-bottom: 14px;
+        display: none;
+      }
+      .login-error.show {
+        display: block;
+      }
+      .login-btn {
+        width: 100%;
+        padding: 13px;
+        border: 0;
+        border-radius: 9px;
+        background: var(--teal);
+        color: #fff;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .login-btn:hover {
+        background: #1a7a6e;
+      }
+      .login-btn:disabled {
+        background: var(--muted);
+        cursor: not-allowed;
+      }
+      .login-footer {
+        text-align: center;
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 20px;
+      }
+
+      /* session timer bar */
+      .session-bar {
+        position: fixed;
+        top: 60px;
+        right: 0;
+        left: var(--sidebar-w);
+        height: 3px;
+        background: var(--line);
+        z-index: 89;
+        transition: left 0.3s;
+      }
+      .session-bar-fill {
+        height: 100%;
+        background: var(--teal);
+        transition: width 60s linear;
+      }
+      .session-bar-fill.warn {
+        background: var(--alert);
+      }
+      .session-warning {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--ink);
+        color: #fff;
+        padding: 14px 22px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 999;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        display: none;
+        align-items: center;
+        gap: 12px;
+        white-space: nowrap;
+      }
+      .session-warning.show {
+        display: flex;
+      }
+      .session-warning button {
+        padding: 6px 14px;
+        border: 0;
+        border-radius: 6px;
+        background: var(--teal);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      @media (max-width: 768px) {
+        .session-bar {
+          left: 0;
+        }
+        .login-card {
+          padding: 32px 24px;
+        }
+      }
     </style>
   </head>
   <body>
     <!-- ══════════════════ SIDEBAR ══════════════════ -->
+
+    <!-- ══════════════ LOGIN SCREEN ══════════════ -->
+    <div id="loginScreen">
+      <div class="login-card">
+        <div class="login-logo">
+          <img
+            src="assest/images/logo.jpeg"
+            alt="Fast Forward Logistics"
+            onerror="this.style.display = 'none'"
+          />
+          <div class="login-brand">Fast Forward Logistics</div>
+          <div class="login-sub">Admin Control Panel</div>
+        </div>
+        <h2 class="login-title">Welcome back</h2>
+        <p class="login-subtitle">Sign in to manage your shipments</p>
+        <div class="login-error" id="loginError">
+          Incorrect email or password. Please try again.
+        </div>
+        <div class="login-field">
+          <label>Email</label>
+          <input
+            type="email"
+            id="loginEmail"
+            placeholder="admin@fastforwardlogistics.express"
+            autocomplete="email"
+          />
+        </div>
+        <div class="login-field">
+          <label>Password</label>
+          <input
+            type="password"
+            id="loginPassword"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+          />
+        </div>
+        <button class="login-btn" id="loginBtn">Sign in</button>
+        <p class="login-footer">
+          Fast Forward Logistics &copy; 2026 &mdash; Secure Admin Access
+        </p>
+      </div>
+    </div>
+
+    <!-- Session timeout warning -->
+    <div class="session-warning" id="sessionWarning">
+      ⏱ Session expires in 5 minutes
+      <button id="stayLoggedIn">Stay logged in</button>
+    </div>
+
+    <!-- Session timer bar (top) -->
+    <div class="session-bar" id="sessionBar" style="display: none">
+      <div class="session-bar-fill" id="sessionBarFill"></div>
+    </div>
+
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar" style="display: none">
       <div class="sidebar-header">
         <a class="sidebar-logo" href="index.html" target="_blank">
           <div class="sidebar-logo-icon">
@@ -2265,11 +2504,32 @@
         </a>
       </nav>
 
-      <div class="sidebar-footer"><p>© 2026 Fast Forward Logistics</p></div>
+      <div class="sidebar-footer">
+        <p>© 2026 Fast Forward Logistics</p>
+        <button
+          onclick="adminLogout()"
+          style="
+            margin-top: 10px;
+            width: 100%;
+            padding: 8px;
+            border-radius: 7px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(214, 69, 69, 0.15);
+            color: rgba(255, 100, 100, 0.9);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+          "
+        >
+          Sign out
+        </button>
+      </div>
     </aside>
 
     <!-- ══════════════════ TOPBAR ══════════════════ -->
-    <div class="topbar">
+    <div class="topbar" style="display: none">
       <button class="topbar-hamburger" id="hamburger" aria-label="Toggle menu">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
           <path
@@ -2285,7 +2545,7 @@
     </div>
 
     <!-- ══════════════════ MAIN ══════════════════ -->
-    <div class="main">
+    <div class="main" style="display: none">
       <div class="page-content">
         <!-- ═══ DASHBOARD ═══ -->
         <div class="sec active" id="sec-dashboard">
@@ -2610,22 +2870,6 @@
                 <div class="field">
                   <label>Pieces / packages</label
                   ><input type="number" name="pieces" placeholder="140" />
-                </div>
-                <div class="field">
-                  <label>Vessel / flight name</label
-                  ><input
-                    type="text"
-                    name="vessel_name"
-                    placeholder="MV Northern Vigour"
-                  />
-                </div>
-                <div class="field">
-                  <label>Voyage no.</label
-                  ><input
-                    type="text"
-                    name="voyage_number"
-                    placeholder="V.001W"
-                  />
                 </div>
               </div>
               <p class="fsec">Sender (shipper)</p>
@@ -4113,6 +4357,184 @@
         qsSaveLog([]);
         renderSMSLog();
       });
+
+      /* ══════════════════════════════════════════════════════
+   ADMIN LOGIN + SESSION MANAGEMENT
+   Password stored as SHA-256 hash — never plaintext.
+   Session expires after 3 hours of inactivity.
+   ══════════════════════════════════════════════════════ */
+      (function () {
+        "use strict";
+
+        /* ── Credentials (SHA-256 hashed) ──────────────────────
+     Default: email = support@fastforwardlogistics.express
+              password = FFL@Admin2009!
+     To change: run this in browser console:
+       crypto.subtle.digest('SHA-256', new TextEncoder().encode('YourNewPassword'))
+         .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
+  ─────────────────────────────────────────────────────── */
+        const ADMIN_EMAIL = "support@fastforwardlogistics.express";
+        const ADMIN_PASS_HASH =
+          "9e8da36e9db4c812011d4c7ee3eebd10fea3d9b0da1bfc1b988ec444bdc1e541"; // FFL@Admin2009!
+        const SESSION_KEY = "ffl_admin_session";
+        const SESSION_HOURS = 3; // auto-logout after 3 hours inactivity
+        const WARN_MINS = 5; // warn 5 minutes before logout
+
+        /* ── Hash helper ── */
+        async function sha256(str) {
+          const buf = await crypto.subtle.digest(
+            "SHA-256",
+            new TextEncoder().encode(str),
+          );
+          return [...new Uint8Array(buf)]
+            .map((x) => x.toString(16).padStart(2, "0"))
+            .join("");
+        }
+
+        /* ── Session helpers ── */
+        function getSession() {
+          try {
+            return JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null");
+          } catch {
+            return null;
+          }
+        }
+        function setSession() {
+          sessionStorage.setItem(
+            SESSION_KEY,
+            JSON.stringify({ at: Date.now() }),
+          );
+        }
+        function clearSession() {
+          sessionStorage.removeItem(SESSION_KEY);
+        }
+        function isSessionValid() {
+          const s = getSession();
+          if (!s) return false;
+          return Date.now() - s.at < SESSION_HOURS * 3600 * 1000;
+        }
+        function touchSession() {
+          if (getSession()) setSession(); // reset timer on any activity
+        }
+
+        /* ── UI references ── */
+        const screen = document.getElementById("loginScreen");
+        const emailEl = document.getElementById("loginEmail");
+        const passEl = document.getElementById("loginPassword");
+        const btnEl = document.getElementById("loginBtn");
+        const errEl = document.getElementById("loginError");
+        const warning = document.getElementById("sessionWarning");
+        const stayBtn = document.getElementById("stayLoggedIn");
+        const sessionBar = document.getElementById("sessionBar");
+        const barFill = document.getElementById("sessionBarFill");
+
+        /* ── Show/hide app ── */
+        function showApp() {
+          screen.classList.add("hidden");
+          document.querySelector(".sidebar").style.display = "";
+          document.querySelector(".topbar").style.display = "";
+          document.querySelector(".main").style.display = "";
+          sessionBar.style.display = "block";
+          startSessionTimer();
+        }
+        function showLogin() {
+          clearSession();
+          screen.classList.remove("hidden");
+          document.querySelector(".sidebar").style.display = "none";
+          document.querySelector(".topbar").style.display = "none";
+          document.querySelector(".main").style.display = "none";
+          sessionBar.style.display = "none";
+          warning.classList.remove("show");
+          emailEl.value = "";
+          passEl.value = "";
+          errEl.classList.remove("show");
+          if (window.shipChartInst) {
+            window.shipChartInst.destroy();
+            window.shipChartInst = null;
+          }
+        }
+
+        /* ── Login handler ── */
+        btnEl.addEventListener("click", doLogin);
+        [emailEl, passEl].forEach((el) =>
+          el.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") doLogin();
+          }),
+        );
+
+        async function doLogin() {
+          const email = emailEl.value.trim().toLowerCase();
+          const pass = passEl.value;
+          if (!email || !pass) {
+            errEl.textContent = "Please enter your email and password.";
+            errEl.classList.add("show");
+            return;
+          }
+          btnEl.disabled = true;
+          btnEl.textContent = "Signing in…";
+          const hash = await sha256(pass);
+          if (email === ADMIN_EMAIL && hash === ADMIN_PASS_HASH) {
+            setSession();
+            showApp();
+            if (typeof patchedRefresh === "function")
+              setTimeout(patchedRefresh, 300);
+          } else {
+            errEl.textContent = "Incorrect email or password.";
+            errEl.classList.add("show");
+            passEl.value = "";
+          }
+          btnEl.disabled = false;
+          btnEl.textContent = "Sign in";
+        }
+
+        /* ── Session timer ── */
+        let warnShown = false;
+        function startSessionTimer() {
+          warnShown = false;
+          const tick = setInterval(() => {
+            if (!isSessionValid()) {
+              clearInterval(tick);
+              showLogin();
+              return;
+            }
+            const elapsed = Date.now() - getSession().at;
+            const remaining = SESSION_HOURS * 3600000 - elapsed;
+            const pct = Math.max(
+              0,
+              (remaining / (SESSION_HOURS * 3600000)) * 100,
+            );
+            barFill.style.width = pct + "%";
+            barFill.className =
+              "session-bar-fill" + (remaining < 10 * 60000 ? " warn" : "");
+            if (!warnShown && remaining < WARN_MINS * 60000) {
+              warnShown = true;
+              warning.classList.add("show");
+            }
+          }, 5000);
+        }
+
+        /* ── Reset timer on user activity ── */
+        ["click", "keydown", "mousemove", "touchstart"].forEach((evt) =>
+          document.addEventListener(evt, touchSession, { passive: true }),
+        );
+
+        /* ── Stay logged in button ── */
+        stayBtn.addEventListener("click", () => {
+          touchSession();
+          warning.classList.remove("show");
+          warnShown = false;
+        });
+
+        /* ── Check on load ── */
+        if (isSessionValid()) {
+          showApp();
+        } else {
+          showLogin();
+        }
+
+        /* ── Expose logout globally ── */
+        window.adminLogout = showLogin;
+      })();
 
       window.addEventListener("load", () => {
         setTimeout(patchedRefresh, 400);
