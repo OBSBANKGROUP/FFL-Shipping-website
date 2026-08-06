@@ -1101,7 +1101,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
     $("ejsPublicKey").value = c.ejsPublicKey || "";
     $("ejsServiceId").value = c.ejsServiceId || "";
     $("ejsTemplateId").value = c.ejsTemplateId || "";
-    $("tbApiKey").value = c.tbApiKey || "";
+    $("smsProxyUrl").value = c.smsProxyUrl || "";
     $("cfgCompanyName").value = c.companyName || "Fast Forward Logistics";
     $("cfgSupportPhone").value = c.supportPhone || "+964 780 000 0000";
     $("cfgSupportEmail").value = c.supportEmail || "hello@fastforward.iq";
@@ -1114,7 +1114,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
       ejsPublicKey: $("ejsPublicKey").value.trim(),
       ejsServiceId: $("ejsServiceId").value.trim(),
       ejsTemplateId: $("ejsTemplateId").value.trim(),
-      tbApiKey: $("tbApiKey").value.trim(),
+      smsProxyUrl: $("smsProxyUrl").value.trim(),
       companyName: $("cfgCompanyName").value.trim(),
       supportPhone: $("cfgSupportPhone").value.trim(),
       supportEmail: $("cfgSupportEmail").value.trim(),
@@ -1173,8 +1173,10 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
 
   $("testSMS").addEventListener("click", async () => {
     const c = loadCfg();
-    if (!c.tbApiKey) {
-      alert("Please fill in and save your Textbelt API Key first.");
+    if (!c.smsProxyUrl) {
+      alert(
+        "Please fill in and save your SMS Proxy URL (Supabase function URL) in Settings first.",
+      );
       return;
     }
     const testPhone = prompt(
@@ -1182,21 +1184,17 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
     );
     if (!testPhone || !testPhone.trim()) return;
     const m = $("settingsMsg");
-    m.textContent = "⏳ Sending test SMS via Textbelt…";
+    m.textContent = "⏳ Sending test SMS…";
     m.style.display = "block";
     m.style.color = "var(--amber-dk)";
     try {
       const msgBody =
         (c.companyName || "Fast Forward Logistics") +
         ": Test SMS — your notification system is working correctly.";
-      const params = new URLSearchParams({
-        phone: testPhone.trim(),
-        message: msgBody,
-        key: c.tbApiKey,
-      });
-      const res = await fetch("https://textbelt.com/text", {
+      const res = await fetch(c.smsProxyUrl, {
         method: "POST",
-        body: params,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: testPhone.trim(), message: msgBody }),
       });
       const data = await res.json();
       if (data.success) {
@@ -1380,21 +1378,20 @@ Thank you for choosing ${company}.`;
 
     /* ── SMS via Textbelt ── */
     if (doSMS) {
-      if (!cfg.tbApiKey) {
+      if (!cfg.smsProxyUrl) {
         results.push(
-          "✗ SMS: Textbelt API key not configured. Go to Settings tab.",
+          "✗ SMS: SMS Proxy URL not configured. Go to Settings tab.",
         );
       } else {
         try {
           const smsBody = buildSMS(s, cfg);
-          const params = new URLSearchParams({
-            phone: s.consignee_phone,
-            message: smsBody,
-            key: cfg.tbApiKey,
-          });
-          const res = await fetch("https://textbelt.com/text", {
+          const res = await fetch(cfg.smsProxyUrl, {
             method: "POST",
-            body: params,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              phone: s.consignee_phone,
+              message: smsBody,
+            }),
           });
           const data = await res.json();
           if (data.success) {

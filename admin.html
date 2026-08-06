@@ -2906,7 +2906,7 @@
                 </div>
               </div>
             </div>
-            <!-- Textbelt SMS -->
+            <!-- Textbelt SMS via Supabase proxy -->
             <div class="settings-section">
               <div class="settings-section-head">
                 <span class="settings-badge sms">📱 SMS via Textbelt</span>
@@ -2918,39 +2918,48 @@
                 >
               </div>
               <p class="settings-desc">
-                Textbelt sends SMS to 221 countries with no registration or
-                approval needed. Just one API key. Pay as you go — about $0.09
-                per message.
+                Your Textbelt API key is stored securely on your Supabase server
+                — never exposed in the browser. Paste your Supabase
+                <strong>send-sms</strong> function URL below.
               </p>
               <div class="form-grid">
-                <div class="field">
-                  <label>Textbelt API Key</label>
+                <div class="field full">
+                  <label>SMS Proxy URL (your Supabase send-sms function)</label>
                   <input
-                    type="password"
-                    id="tbApiKey"
-                    placeholder="Your Textbelt API key"
+                    type="text"
+                    id="smsProxyUrl"
+                    placeholder="https://YOUR_PROJECT.supabase.co/functions/v1/send-sms"
                   />
                 </div>
               </div>
               <div class="settings-guide">
-                <p>Setup (2 minutes):</p>
+                <p>One-time setup:</p>
                 <ol>
                   <li>
-                    Go to
-                    <a href="https://textbelt.com" target="_blank"
-                      >textbelt.com</a
-                    >
-                    → click <strong>Create an API key</strong>
+                    In your Supabase dashboard →
+                    <strong>Edge Functions</strong> →
+                    <strong>Deploy a new function</strong>
                   </li>
                   <li>
-                    Enter your email and buy credits (start with $10 = ~110
-                    messages)
+                    Name it <strong>send-sms</strong>, paste the code from
+                    <code>supabase/functions/send-sms/index.ts</code>, click
+                    Deploy
                   </li>
                   <li>
-                    Copy your API key and paste it above → click
-                    <strong>Save settings</strong>
+                    Go to Edge Functions → send-sms →
+                    <strong>Secrets</strong> tab → Add secret:<br />Name:
+                    <strong>TEXTBELT_API_KEY</strong> &nbsp; Value: your
+                    Textbelt API key
                   </li>
-                  <li>Click <strong>Test SMS</strong> to verify it works</li>
+                  <li>
+                    Copy the function URL (looks like
+                    <code>https://xxxx.supabase.co/functions/v1/send-sms</code>)
+                    and paste it above
+                  </li>
+                  <li>
+                    Click <strong>Save settings</strong> then
+                    <strong>Test SMS</strong>
+                  </li>
                 </ol>
               </div>
             </div>
@@ -3978,9 +3987,9 @@
             document.getElementById("smsBody").focus();
             return;
           }
-          if (!cfg.tbApiKey) {
+          if (!cfg.smsProxyUrl) {
             alert(
-              "Textbelt is not configured yet. Go to Settings → save your API Key first.",
+              "SMS Proxy URL not configured. Go to Settings → save your Supabase send-sms function URL first.",
             );
             return;
           }
@@ -3990,14 +3999,10 @@
           sendBtn.disabled = true;
 
           try {
-            const params = new URLSearchParams({
-              phone: phone,
-              message: body,
-              key: cfg.tbApiKey,
-            });
-            const res = await fetch("https://textbelt.com/text", {
+            const res = await fetch(cfg.smsProxyUrl, {
               method: "POST",
-              body: params,
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ phone: phone, message: body }),
             });
             const data = await res.json();
 
