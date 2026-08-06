@@ -2931,6 +2931,14 @@
                     placeholder="https://YOUR_PROJECT.supabase.co/functions/v1/send-sms"
                   />
                 </div>
+                <div class="field full">
+                  <label>Supabase Publishable Key (for authorization)</label>
+                  <input
+                    type="text"
+                    id="supabaseAnonKey"
+                    placeholder="sb_publishable_..."
+                  />
+                </div>
               </div>
               <div class="settings-guide">
                 <p>One-time setup:</p>
@@ -2952,9 +2960,13 @@
                     Textbelt API key
                   </li>
                   <li>
-                    Copy the function URL (looks like
-                    <code>https://xxxx.supabase.co/functions/v1/send-sms</code>)
-                    and paste it above
+                    Copy the function URL and paste it in
+                    <strong>SMS Proxy URL</strong> above
+                  </li>
+                  <li>
+                    Go to Supabase → <strong>Settings → API</strong> → copy your
+                    <strong>Publishable key</strong> (starts with
+                    <code>sb_publishable_</code>) and paste it above
                   </li>
                   <li>
                     Click <strong>Save settings</strong> then
@@ -4001,7 +4013,10 @@
           try {
             const res = await fetch(cfg.smsProxyUrl, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + (cfg.supabaseAnonKey || ""),
+              },
               body: JSON.stringify({ phone: phone, message: body }),
             });
             const data = await res.json();

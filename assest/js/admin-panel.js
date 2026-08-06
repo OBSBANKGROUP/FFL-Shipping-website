@@ -1102,6 +1102,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
     $("ejsServiceId").value = c.ejsServiceId || "";
     $("ejsTemplateId").value = c.ejsTemplateId || "";
     $("smsProxyUrl").value = c.smsProxyUrl || "";
+    $("supabaseAnonKey").value = c.supabaseAnonKey || "";
     $("cfgCompanyName").value = c.companyName || "Fast Forward Logistics";
     $("cfgSupportPhone").value = c.supportPhone || "+964 780 000 0000";
     $("cfgSupportEmail").value = c.supportEmail || "hello@fastforward.iq";
@@ -1115,6 +1116,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
       ejsServiceId: $("ejsServiceId").value.trim(),
       ejsTemplateId: $("ejsTemplateId").value.trim(),
       smsProxyUrl: $("smsProxyUrl").value.trim(),
+      supabaseAnonKey: $("supabaseAnonKey").value.trim(),
       companyName: $("cfgCompanyName").value.trim(),
       supportPhone: $("cfgSupportPhone").value.trim(),
       supportEmail: $("cfgSupportEmail").value.trim(),
@@ -1193,7 +1195,10 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
         ": Test SMS — your notification system is working correctly.";
       const res = await fetch(c.smsProxyUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + (c.supabaseAnonKey || ""),
+        },
         body: JSON.stringify({ phone: testPhone.trim(), message: msgBody }),
       });
       const data = await res.json();
@@ -1387,7 +1392,10 @@ Thank you for choosing ${company}.`;
           const smsBody = buildSMS(s, cfg);
           const res = await fetch(cfg.smsProxyUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + (cfg.supabaseAnonKey || ""),
+            },
             body: JSON.stringify({
               phone: s.consignee_phone,
               message: smsBody,
