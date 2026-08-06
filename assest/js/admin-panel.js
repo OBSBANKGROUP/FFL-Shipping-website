@@ -350,10 +350,7 @@
     }
     const dl = e.target.closest("[data-del]");
     if (dl && confirm(`Delete ${dl.dataset.del}?`)) {
-      save(
-        SK,
-        load(SK).filter((s) => s.tracking_number !== dl.dataset.del),
-      );
+      deleteShipAndSync(dl.dataset.del);
       refreshDash();
     }
   });
@@ -466,6 +463,7 @@
       added_at: new Date().toISOString(),
     });
     save(SK, all);
+    if (hasSupabaseConfig()) upsertShipmentToSupabase(ship).catch(() => {});
     selectedFlagType = null;
     $("flagCustomLabel").value = "";
     $("flagNote").value = "";
@@ -834,7 +832,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
     });
     const ns = $("updStatus").value;
     if (ns) ship.status = ns;
-    save(SK, all);
+    updateShipAndSync(ship);
     closeModal();
     refreshDash();
     toast(`Update posted on ${modalTN}`);
@@ -1056,7 +1054,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
       (s) => s.tracking_number.toLowerCase() !== tn.toLowerCase(),
     );
     all.unshift(rec);
-    save(SK, all);
+    saveAndSyncShipments(all);
     resetForm();
     toast(`Saved ${tn}`);
     if (window.showTab) window.showTab("dashboard");
@@ -1096,12 +1094,144 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
     localStorage.setItem(CFG_KEY, JSON.stringify(obj));
   }
 
+  let supabase = null;
+  function getSupabaseConfig() {
+    const c = loadCfg();
+    return {
+      url: (c.supabaseUrl || "").trim(),
+      anonKey: (c.supabaseAnonKey || "").trim(),
+    };
+  }
+  function hasSupabaseConfig() {
+    const cfg = getSupabaseConfig();
+    return cfg.url && cfg.anonKey && typeof window.supabase === "function";
+  }
+  function getSupabaseClient() {
+    if (supabase) return supabase;
+    const cfg = getSupabaseConfig();
+    if (!cfg.url || !cfg.anonKey) return null;
+    if (!window.supabase || typeof window.supabase.createClient !== "function")
+      return null;
+    supabase = window.supabase.createClient(cfg.url, cfg.anonKey);
+    return supabase;
+  }
+
+  async function loadShipmentsFromSupabase() {
+    const sb = getSupabaseClient();
+    if (!sb) return null;
+    try {
+      const { data, error } = await sb
+        .from("shipments")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) {
+        console.warn("Supabase shipment load error:", error.message || error);
+        return null;
+      }
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.warn("Supabase shipment exception:", err.message || err);
+      return null;
+    }
+  }
+
+  async function syncShipmentsFromSupabase() {
+    const remote = await loadShipmentsFromSupabase();
+    if (!remote) return false;
+    save(SK, remote);
+    refreshDash();
+    toast("Supabase shipment data synced");
+    return true;
+  }
+
+  async function upsertShipmentToSupabase(ship) {
+    const sb = getSupabaseClient();
+    if (!sb) return false;
+    try {
+      const record = { ...ship };
+      record.tracking_events = record.tracking_events || [];
+      record.alert_flags = record.alert_flags || [];
+      record.notifications = record.notifications || [];
+      const { error } = await sb.from("shipments").upsert([record], {
+        onConflict: "tracking_number",
+      });
+      if (error) {
+        console.warn("Supabase shipment upsert error:", error.message || error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.warn("Supabase shipment upsert exception:", err.message || err);
+      return false;
+    }
+  }
+
+  function subscribeToSupabaseShipments() {
+    const sb = getSupabaseClient();
+    if (!sb || !sb.channel) return;
+    const channel = sb
+      .channel("public:shipments")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "shipments" },
+        async () => {
+          await syncShipmentsFromSupabase();
+        },
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.info("Supabase realtime shipment subscription active.");
+        }
+      });
+    window.supabaseShipmentChannel = channel;
+  }
+
+  function maybeSyncSupabase() {
+    if (hasSupabaseConfig()) {
+      syncShipmentsFromSupabase();
+      subscribeToSupabaseShipments();
+    }
+  }
+
+  function saveAndSyncShipments(all) {
+    save(SK, all);
+    if (hasSupabaseConfig()) {
+      const ship = all[0];
+      if (ship && ship.tracking_number) {
+        upsertShipmentToSupabase(ship).catch(() => {});
+      }
+    }
+  }
+
+  function upsertAndSyncShip(ship) {
+    const all = load(SK).filter((s) => s.tracking_number !== ship.tracking_number);
+    all.unshift(ship);
+    save(SK, all);
+    if (hasSupabaseConfig()) upsertShipmentToSupabase(ship).catch(() => {});
+  }
+
+  function updateShipAndSync(ship) {
+    const all = load(SK).map((s) => (s.tracking_number === ship.tracking_number ? ship : s));
+    save(SK, all);
+    if (hasSupabaseConfig()) upsertShipmentToSupabase(ship).catch(() => {});
+  }
+
+  function syncOnStart() {
+    if (hasSupabaseConfig()) {
+      syncShipmentsFromSupabase();
+      subscribeToSupabaseShipments();
+    }
+  }
+
+  var SUPABASE_READY = hasSupabaseConfig();
+  
   function fillSettings() {
     const c = loadCfg();
     $("ejsPublicKey").value = c.ejsPublicKey || "";
     $("ejsServiceId").value = c.ejsServiceId || "";
     $("ejsTemplateId").value = c.ejsTemplateId || "";
     $("smsProxyUrl").value = c.smsProxyUrl || "";
+    $("supabaseUrl").value = c.supabaseUrl || "";
     $("supabaseAnonKey").value = c.supabaseAnonKey || "";
     $("cfgCompanyName").value = c.companyName || "Fast Forward Logistics";
     $("cfgSupportPhone").value = c.supportPhone || "+964 780 000 0000";
@@ -1116,6 +1246,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
       ejsServiceId: $("ejsServiceId").value.trim(),
       ejsTemplateId: $("ejsTemplateId").value.trim(),
       smsProxyUrl: $("smsProxyUrl").value.trim(),
+      supabaseUrl: $("supabaseUrl").value.trim(),
       supabaseAnonKey: $("supabaseAnonKey").value.trim(),
       companyName: $("cfgCompanyName").value.trim(),
       supportPhone: $("cfgSupportPhone").value.trim(),
@@ -1130,6 +1261,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
       m.style.display = "none";
     }, 3000);
     toast("Settings saved");
+    syncOnStart();
   });
 
   $("testEmail").addEventListener("click", async () => {
@@ -1448,6 +1580,7 @@ Thank you for choosing ${company}.`;
   resetForm();
   refreshDash();
   fillSettings();
+  syncOnStart();
   // Expose key functions globally so admin.html showTab() can call them
   window.renderShips = renderShips;
   window.refreshDash = refreshDash;
