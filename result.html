@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shipment Result — Fast Forward Logistics</title>
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet" href="assest/css/style.css" />
+    <style>
+      /* ── Result page extras ── */
+      .result-topbar {
+        background: var(--ink);
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .result-back {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: rgba(255, 255, 255, 0.7);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 7px;
+        padding: 6px 12px;
+        transition: all 0.15s;
+      }
+      .result-back:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+      }
+      .result-tn-bar {
+        flex: 1;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--amber);
+        letter-spacing: 0.5px;
+      }
+      .result-new-search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .result-new-search input {
+        padding: 7px 12px;
+        border-radius: 7px 0 0 7px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-size: 13px;
+        font-family: inherit;
+        width: 180px;
+        outline: 0;
+      }
+      .result-new-search input::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+      }
+      .result-new-search input:focus {
+        border-color: var(--amber);
+      }
+      .result-new-search button {
+        padding: 7px 14px;
+        border-radius: 0 7px 7px 0;
+        border: 0;
+        background: var(--amber);
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      /* ── Map ── */
+      .track-map-wrap {
+        position: relative;
+        width: 100%;
+        height: clamp(260px, 38vw, 420px);
+        background: #e8ecef;
+      }
+      #trackMap {
+        width: 100%;
+        height: 100%;
+      }
+      .map-route-badge {
+        position: absolute;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--ink);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 14px;
+        border-radius: 20px;
+        white-space: nowrap;
+        z-index: 500;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .map-route-badge .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .map-route-badge .dot.origin {
+        background: var(--teal);
+      }
+      .map-route-badge .dot.dest {
+        background: var(--amber);
+      }
+      .map-loading-overlay {
+        position: absolute;
+        inset: 0;
+        background: #e8ecef;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 600;
+        gap: 12px;
+        color: var(--muted-dk);
+        font-size: 14px;
+      }
+      .map-loading-overlay .spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--line);
+        border-top-color: var(--teal);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* ── Current location pulse ── */
+      .pulse-dot {
+        width: 14px;
+        height: 14px;
+        background: var(--amber);
+        border-radius: 50%;
+        border: 3px solid #fff;
+        box-shadow: 0 0 0 0 rgba(242, 161, 4, 0.5);
+        animation: pulse-ring 2s infinite;
+      }
+      @keyframes pulse-ring {
+        0% {
+          box-shadow: 0 0 0 0 rgba(242, 161, 4, 0.5);
+        }
+        70% {
+          box-shadow: 0 0 0 12px rgba(242, 161, 4, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(242, 161, 4, 0);
+        }
+      }
+
+      /* ── State panels ── */
+      .result-states {
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 40px 24px;
+      }
+      .state-card {
+        text-align: center;
+        padding: 56px 24px;
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+      }
+      .state-card .state-icon {
+        font-size: 40px;
+        margin-bottom: 16px;
+      }
+      .state-card h2 {
+        font-size: 22px;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+      .state-card p {
+        color: var(--muted);
+        font-size: 15px;
+        max-width: 400px;
+        margin: 0 auto 20px;
+      }
+      .state-card a {
+        color: var(--teal);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .spinner-lg {
+        width: 44px;
+        height: 44px;
+        border: 3px solid var(--line);
+        border-top-color: var(--teal);
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite;
+        margin: 0 auto 16px;
+      }
+
+      /* ── Result content ── */
+      .result-content {
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 0 24px 60px;
+      }
+      @media (max-width: 600px) {
+        .result-new-search input {
+          width: 120px;
+        }
+        .result-topbar {
+          padding: 12px 16px;
+        }
+        .result-content {
+          padding: 0 16px 40px;
+        }
+      }
+    </style>
+  </head>
+  <body data-page="tracking" style="background: var(--paper)">
+    <div class="grid-bg" aria-hidden="true"></div>
+
+    <!-- Shared header -->
+    <header class="topbar" id="topbar"></header>
+
+    <!-- Result-specific sub-topbar -->
+    <div class="result-topbar" id="resultTopbar" style="display: none">
+      <a href="tracking.html" class="result-back">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path
+            d="M19 12H5m0 0 6-6m-6 6 6 6"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        Back
+      </a>
+      <span class="result-tn-bar" id="resultTNBar"></span>
+      <div class="result-new-search">
+        <input
+          id="quickInput"
+          type="text"
+          placeholder="Search another…"
+          autocomplete="off"
+        />
+        <button id="quickSearch">Go</button>
+      </div>
+    </div>
+
+    <main id="mainContent">
+      <!-- Map (hidden until result loads) -->
+      <div class="track-map-wrap" id="mapWrap" style="display: none">
+        <div class="map-loading-overlay" id="mapLoading">
+          <div class="spinner"></div>
+          <span>Loading map…</span>
+        </div>
+        <div id="trackMap"></div>
+        <div class="map-route-badge" id="mapBadge" style="display: none">
+          <span class="dot origin"></span>
+          <span id="mapOriginLabel">—</span>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+            <path
+              d="M5 12h13m0 0-5-5m5 5-5 5"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span id="mapDestLabel">—</span>
+          <span class="dot dest"></span>
+        </div>
+      </div>
+
+      <!-- States -->
+      <div class="result-states" id="resultStates">
+        <div class="state-card" id="stateIdle">
+          <div class="state-icon">📦</div>
+          <h2>Track your shipment</h2>
+          <p>
+            Enter a tracking number, bill of lading or container number to
+            follow your cargo.
+          </p>
+          <a href="tracking.html">← Go to search</a>
+        </div>
+      </div>
+
+      <!-- Tracking result rendered here -->
+      <div class="result-content" id="resultContent" style="display: none">
+        <section id="result" class="result" aria-live="polite"></section>
+      </div>
+    </main>
+
+    <footer class="footer" id="siteFooter"></footer>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assest/js/config.js"></script>
+    <script src="assest/js/main.js"></script>
+    <script src="assest/js/app.js"></script>
+  </body>
+</html>

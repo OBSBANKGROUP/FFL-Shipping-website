@@ -133,19 +133,7 @@
   /* ── tab switching ── */
   const tabs = document.querySelectorAll("[data-tab]");
   const secs = document.querySelectorAll(".sec");
-  function showTab(key) {
-    tabs.forEach((t) => t.classList.toggle("active", t.dataset.tab === key));
-    secs.forEach((s) => {
-      s.classList.remove("active");
-      if (s.id === "sec-" + key) s.classList.add("active");
-    });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    if (key === "dashboard") refreshDash();
-    if (key === "quotes") renderQuotes();
-  }
-  tabs.forEach((t) =>
-    t.addEventListener("click", () => showTab(t.dataset.tab)),
-  );
+  // Tab switching handled by admin.html showTab() globally
 
   /* ════════ CHART ════════ */
   const RATE = { ocean: 0.055, air: 4.2, road: 1.4 };
@@ -261,18 +249,19 @@
   let activeFilter = "all";
   function refreshDash() {
     const all = load(SK);
-    $("st-total").textContent = all.length;
-    $("st-transit").textContent = all.filter((s) =>
-      ["in_transit", "customs", "out_for_delivery"].includes(s.status),
-    ).length;
-    $("st-done").textContent = all.filter(
-      (s) => s.status === "delivered",
-    ).length;
-    $("st-attn").textContent = all.filter((s) =>
-      ["delayed", "exception"].includes(s.status),
-    ).length;
-    updateChart();
+    const stTotal = $("st-total");
+    if (stTotal) stTotal.textContent = all.length;
+    const stTransit = $("st-transit");
+    if (stTransit)
+      stTransit.textContent = all.filter((s) =>
+        ["in_transit", "customs", "out_for_delivery"].includes(s.status),
+      ).length;
+    const stDone = $("st-done");
+    if (stDone)
+      stDone.textContent = all.filter((s) => s.status === "delivered").length;
     renderShips();
+    // Trigger outer dashboard refresh if available
+    if (typeof patchedRefresh === "function") setTimeout(patchedRefresh, 50);
   }
   function renderShips() {
     let all = load(SK);
@@ -285,7 +274,7 @@
       if (g)
         g.addEventListener("click", (e) => {
           e.preventDefault();
-          showTab("addShipment");
+          if (window.showTab) window.showTab("addShipment");
           resetForm();
         });
       return;
@@ -943,13 +932,13 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
     editKey = s.tracking_number;
     $("formTitle").textContent = "Edit Shipment — " + s.tracking_number;
     $("cancelEditBtn").style.display = "";
-    showTab("addShipment");
+    if (window.showTab) window.showTab("addShipment");
   }
   $("addEventBtn").addEventListener("click", () => addEvRow());
   $("clearFormBtn").addEventListener("click", resetForm);
   $("cancelEditBtn").addEventListener("click", () => {
     resetForm();
-    showTab("dashboard");
+    if (window.showTab) window.showTab("dashboard");
   });
   $("sampleBtn").addEventListener("click", () => {
     const now = Date.now(),
@@ -1070,7 +1059,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
     save(SK, all);
     resetForm();
     toast(`Saved ${tn}`);
-    showTab("dashboard");
+    if (window.showTab) window.showTab("dashboard");
   });
 
   /* ════════ QUOTES ════════ */
@@ -1112,9 +1101,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
     $("ejsPublicKey").value = c.ejsPublicKey || "";
     $("ejsServiceId").value = c.ejsServiceId || "";
     $("ejsTemplateId").value = c.ejsTemplateId || "";
-    $("csUsername").value = c.csUsername || "";
-    $("csApiKey").value = c.csApiKey || "";
-    $("csFrom").value = c.csFrom || "";
+    $("tbApiKey").value = c.tbApiKey || "";
     $("cfgCompanyName").value = c.companyName || "Fast Forward Logistics";
     $("cfgSupportPhone").value = c.supportPhone || "+964 780 000 0000";
     $("cfgSupportEmail").value = c.supportEmail || "hello@fastforward.iq";
@@ -1127,9 +1114,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
       ejsPublicKey: $("ejsPublicKey").value.trim(),
       ejsServiceId: $("ejsServiceId").value.trim(),
       ejsTemplateId: $("ejsTemplateId").value.trim(),
-      csUsername: $("csUsername").value.trim(),
-      csApiKey: $("csApiKey").value.trim(),
-      csFrom: $("csFrom").value.trim(),
+      tbApiKey: $("tbApiKey").value.trim(),
       companyName: $("cfgCompanyName").value.trim(),
       supportPhone: $("cfgSupportPhone").value.trim(),
       supportEmail: $("cfgSupportEmail").value.trim(),
@@ -1188,58 +1173,45 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
 
   $("testSMS").addEventListener("click", async () => {
     const c = loadCfg();
-    if (!c.csUsername || !c.csApiKey) {
-      alert(
-        "Please fill in and save your ClickSend Username and API Key first.",
-      );
+    if (!c.tbApiKey) {
+      alert("Please fill in and save your Textbelt API Key first.");
       return;
     }
     const testPhone = prompt(
-      "Enter a phone number to send the test SMS to (include country code e.g. +9647801234567):",
+      "Enter a phone number to send the test SMS to (with country code e.g. +9647801234567):",
     );
     if (!testPhone || !testPhone.trim()) return;
     const m = $("settingsMsg");
-    m.textContent = "⏳ Sending test SMS via ClickSend…";
+    m.textContent = "⏳ Sending test SMS via Textbelt…";
     m.style.display = "block";
     m.style.color = "var(--amber-dk)";
     try {
-      const body = `${c.companyName || "Fast Forward Logistics"}: Test SMS — your notification system is working correctly. Tracking: FFL-TEST-0000`;
-      const payload = {
-        messages: [
-          {
-            source: "FFL-Admin",
-            to: testPhone.trim(),
-            body,
-            ...(c.csFrom ? { from: c.csFrom } : {}),
-          },
-        ],
-      };
-      const res = await fetch("https://rest.clicksend.com/v3/sms/send", {
+      const msgBody =
+        (c.companyName || "Fast Forward Logistics") +
+        ": Test SMS — your notification system is working correctly.";
+      const params = new URLSearchParams({
+        phone: testPhone.trim(),
+        message: msgBody,
+        key: c.tbApiKey,
+      });
+      const res = await fetch("https://textbelt.com/text", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Basic " + btoa(c.csUsername + ":" + c.csApiKey),
-        },
-        body: JSON.stringify(payload),
+        body: params,
       });
       const data = await res.json();
-      const status =
-        data.data &&
-        data.data.messages &&
-        data.data.messages[0] &&
-        data.data.messages[0].status;
-      if (res.ok && status === "SUCCESS") {
+      if (data.success) {
         m.textContent =
-          "✓ Test SMS sent to " + testPhone.trim() + " — check your phone!";
+          "✓ Test SMS sent to " +
+          testPhone.trim() +
+          "! Credits remaining: " +
+          (data.quotaRemaining ?? "?");
         m.style.color = "var(--teal)";
       } else {
-        m.textContent =
-          "✗ SMS failed: " +
-          (status || data.response_msg || JSON.stringify(data).slice(0, 150));
+        m.textContent = "✗ SMS failed: " + (data.error || JSON.stringify(data));
         m.style.color = "var(--alert)";
       }
     } catch (err) {
-      m.textContent = "✗ SMS error: " + (err.message || String(err));
+      m.textContent = "✗ Error: " + (err.message || String(err));
       m.style.color = "var(--alert)";
     }
   });
@@ -1293,11 +1265,20 @@ Thank you for choosing ${company}.`;
   }
 
   function buildSMS(s, cfg) {
+    const company = cfg.companyName || "Fast Forward Logistics";
     const trackUrl =
-      (cfg.trackingUrl || "http://localhost:5500/tracking.html") +
+      (cfg.trackingUrl || "") +
       "?track=" +
       encodeURIComponent(s.tracking_number);
-    return `${cfg.companyName || "FFL"}: Your shipment ${s.tracking_number} (${s.commodity || "cargo"}) is booked. ETA: ${fmtEta(s.eta)}. Track: ${trackUrl}`;
+    const eta = s.eta
+      ? new Date(s.eta).toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      : "—";
+    return `${company}: Hi ${s.consignee_contact || "Customer"}, your shipment ${s.tracking_number} (${s.commodity || "cargo"}) is ${s.status.replace("_", " ")}. ETA: ${eta}. From: ${s.origin_port || "—"} → ${s.destination_port || "—"}. Track: ${trackUrl}`;
   }
 
   let notifShipment = null;
@@ -1397,52 +1378,40 @@ Thank you for choosing ${company}.`;
       }
     }
 
-    /* ── SMS via ClickSend REST API (direct, no proxy needed) ── */
+    /* ── SMS via Textbelt ── */
     if (doSMS) {
-      if (!cfg.csUsername || !cfg.csApiKey) {
+      if (!cfg.tbApiKey) {
         results.push(
-          "\u2717 SMS: ClickSend not configured. Go to Settings tab.",
+          "✗ SMS: Textbelt API key not configured. Go to Settings tab.",
         );
       } else {
         try {
           const smsBody = buildSMS(s, cfg);
-          const payload = {
-            messages: [
-              {
-                source: "FFL-Admin",
-                to: s.consignee_phone,
-                body: smsBody,
-                ...(cfg.csFrom ? { from: cfg.csFrom } : {}),
-              },
-            ],
-          };
-          const res = await fetch("https://rest.clicksend.com/v3/sms/send", {
+          const params = new URLSearchParams({
+            phone: s.consignee_phone,
+            message: smsBody,
+            key: cfg.tbApiKey,
+          });
+          const res = await fetch("https://textbelt.com/text", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization:
-                "Basic " + btoa(cfg.csUsername + ":" + cfg.csApiKey),
-            },
-            body: JSON.stringify(payload),
+            body: params,
           });
           const data = await res.json();
-          const msgStatus =
-            data.data &&
-            data.data.messages &&
-            data.data.messages[0] &&
-            data.data.messages[0].status;
-          if (res.ok && msgStatus === "SUCCESS") {
-            results.push("\u2713 SMS sent to " + s.consignee_phone);
+          if (data.success) {
+            results.push(
+              "✓ SMS sent to " +
+                s.consignee_phone +
+                " · Credits left: " +
+                (data.quotaRemaining ?? "?"),
+            );
           } else {
             results.push(
-              "\u2717 SMS failed: " +
-                (msgStatus ||
-                  data.response_msg ||
-                  JSON.stringify(data).slice(0, 120)),
+              "✗ SMS failed: " +
+                (data.error || JSON.stringify(data).slice(0, 120)),
             );
           }
         } catch (err) {
-          results.push("\u2717 SMS failed: " + (err.message || String(err)));
+          results.push("✗ SMS failed: " + (err.message || String(err)));
         }
       }
     }
@@ -1475,4 +1444,9 @@ Thank you for choosing ${company}.`;
   resetForm();
   refreshDash();
   fillSettings();
+  // Expose key functions globally so admin.html showTab() can call them
+  window.renderShips = renderShips;
+  window.refreshDash = refreshDash;
+  window.renderQuotes = renderQuotes;
+  window.openFlagsModal = openFlagsModal;
 })();

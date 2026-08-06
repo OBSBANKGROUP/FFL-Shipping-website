@@ -75,8 +75,9 @@
           <p>Freight forwarding from Iraq to the USA, Europe and worldwide — ocean, air and road, customs and warehousing under one roof.</p>
         </div>
         <div class="footer-col"><h4>Services</h4>
-          <a href="services.html">Ocean freight</a><a href="services.html">Air freight</a>
-          <a href="services.html">Road &amp; rail</a><a href="services.html">Warehousing</a></div>
+          <a href="svc-ocean.html">Ocean freight</a><a href="svc-air.html">Air freight</a>
+          <a href="svc-road.html">Road &amp; rail</a><a href="svc-warehouse.html">Warehousing</a>
+          <a href="svc-door.html">Door to door</a><a href="svc-project.html">Project cargo</a></div>
         <div class="footer-col"><h4>Company</h4>
           <a href="about.html">About us</a><a href="tracking.html">Track a shipment</a>
           <a href="quote.html">Get a quote</a><a href="contact.html">Contact</a></div>

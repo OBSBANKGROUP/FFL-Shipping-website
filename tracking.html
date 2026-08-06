@@ -70,27 +70,36 @@
             </button>
           </div>
         </div>
-
-        <section id="loading" class="state hidden" aria-live="polite">
-          <div class="spinner" aria-hidden="true"></div>
-          <p>Locating shipment…</p>
-        </section>
-        <section id="notFound" class="state hidden" aria-live="polite">
-          <h2>No shipment found</h2>
-          <p>
-            We couldn't match that number. Check for typos, or use the full
-            tracking number (e.g. <code>FFL-2K5-8842</code>).
-          </p>
-        </section>
-        <section id="errorState" class="state hidden" aria-live="polite">
-          <h2>Couldn't reach tracking</h2>
-          <p id="errorMsg">
-            Something went wrong contacting the tracking service. Try again in a
-            moment.
-          </p>
-        </section>
-        <section id="result" class="result hidden" aria-live="polite"></section>
       </section>
+
+      <script>
+        /* Redirect tracking form to result.html */
+        (function () {
+          var form = document.getElementById("trackForm");
+          var input = document.getElementById("trackInput");
+          function go(val) {
+            var q = (val || input.value || "").trim();
+            if (!q) {
+              input.focus();
+              return;
+            }
+            window.location.href = "result.html?track=" + encodeURIComponent(q);
+          }
+          form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            go();
+          });
+          var hints = document.getElementById("demoHints");
+          if (hints)
+            hints.addEventListener("click", function (e) {
+              var b = e.target.closest("[data-track]");
+              if (b) {
+                input.value = b.dataset.track;
+                go(b.dataset.track);
+              }
+            });
+        })();
+      </script>
 
       <!-- STATUS GUIDE -->
       <section class="section why">
@@ -274,6 +283,5 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assest/js/config.js"></script>
     <script src="assest/js/main.js"></script>
-    <script src="assest/js/app.js"></script>
   </body>
 </html>

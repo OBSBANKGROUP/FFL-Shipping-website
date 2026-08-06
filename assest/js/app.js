@@ -1,39 +1,112 @@
 /* =====================================================================
-   Fast Forward Logistics — tracking client (FedEx-style result)
+   Fast Forward Logistics — Tracking result client
+   Runs on result.html only.
    ===================================================================== */
 (() => {
   "use strict";
 
+  /* Only run on result.html */
+  if (!document.getElementById("trackMap")) return;
+
+  /* ── Supabase (optional) ── */
   const cfg = window.FFL_CONFIG || {};
   const configured =
     cfg.SUPABASE_URL &&
     cfg.SUPABASE_ANON_KEY &&
-    !cfg.SUPABASE_URL.startsWith("YOUR_") &&
-    !cfg.SUPABASE_ANON_KEY.startsWith("YOUR_");
+    !cfg.SUPABASE_URL.startsWith("YOUR_");
   let supabase = null;
   if (configured && window.supabase)
     supabase = window.supabase.createClient(
       cfg.SUPABASE_URL,
       cfg.SUPABASE_ANON_KEY,
     );
-  const LIVE = Boolean(supabase);
 
-  const el = (id) => document.getElementById(id);
-  const form = el("trackForm"),
-    input = el("trackInput"),
-    result = el("result");
-  const loading = el("loading"),
-    notFound = el("notFound"),
-    errorState = el("errorState");
-  const errorMsg = el("errorMsg"),
-    dataMode = el("dataMode");
-  if (!form) return;
-  if (LIVE && dataMode) {
-    dataMode.textContent = "live · supabase";
-    dataMode.classList.add("live");
+  /* ── Port coordinate lookup ── */
+  const PORT_COORDS = {
+    /* Iraq */
+    IQUQR: [30.034, 47.942],
+    BGW: [33.262, 44.234],
+    EBL: [36.237, 43.963],
+    Baghdad: [33.315, 44.366],
+    Basra: [30.508, 47.783],
+    Erbil: [36.191, 44.009],
+    "Umm Qasr": [30.034, 47.942],
+    Iraq: [33.0, 44.0],
+    /* USA */
+    USNYC: [40.661, -74.044],
+    "New York": [40.661, -74.044],
+    USLAX: [33.74, -118.252],
+    "Los Angeles": [33.74, -118.252],
+    USHOU: [29.726, -95.264],
+    Houston: [29.726, -95.264],
+    USMIA: [25.774, -80.185],
+    Miami: [25.774, -80.185],
+    USSAV: [32.077, -81.091],
+    Savannah: [32.077, -81.091],
+    Chicago: [41.878, -87.63],
+    Dallas: [32.776, -96.797],
+    /* Europe */
+    NLRTM: [51.95, 4.14],
+    Rotterdam: [51.95, 4.14],
+    DEHAM: [53.542, 9.966],
+    Hamburg: [53.542, 9.966],
+    GBFXT: [51.96, 1.324],
+    Felixstowe: [51.96, 1.324],
+    DEFRA: [50.034, 8.562],
+    Frankfurt: [50.034, 8.562],
+    FRA: [50.034, 8.562],
+    BEANR: [51.246, 4.404],
+    Antwerp: [51.246, 4.404],
+    ITGOA: [44.411, 8.932],
+    Genoa: [44.411, 8.932],
+    London: [51.507, -0.127],
+    Paris: [48.856, 2.352],
+    Berlin: [52.52, 13.405],
+    Madrid: [40.416, -3.703],
+    /* Middle East */
+    AEDXB: [25.005, 55.065],
+    Dubai: [25.005, 55.065],
+    AEAUH: [24.471, 54.366],
+    "Abu Dhabi": [24.471, 54.366],
+    JOAQJ: [29.536, 35.006],
+    Aqaba: [29.536, 35.006],
+    SAJED: [21.49, 39.185],
+    Jeddah: [21.49, 39.185],
+    Kuwait: [29.378, 47.99],
+    Istanbul: [41.015, 28.979],
+    /* Asia / other */
+    CNSHA: [31.23, 121.473],
+    Shanghai: [31.23, 121.473],
+    SGSIN: [1.264, 103.82],
+    Singapore: [1.264, 103.82],
+    HKHKG: [22.315, 114.168],
+    "Hong Kong": [22.315, 114.168],
+    INNSA: [18.936, 72.849],
+    Mumbai: [18.936, 72.849],
+    /* Africa */
+    ZADUR: [-29.867, 31.024],
+    Durban: [-29.867, 31.024],
+    GHTEM: [5.633, -0.016],
+    Tema: [5.633, -0.016],
+    EGPSD: [29.972, 32.549],
+    "Port Said": [29.972, 32.549],
+    "Suez Canal": [30.59, 32.265],
+    /* Atlantic */
+    "Atlantic Ocean": [30.0, -40.0],
+  };
+
+  function resolveCoords(portStr) {
+    if (!portStr) return null;
+    /* Try exact key */
+    if (PORT_COORDS[portStr]) return PORT_COORDS[portStr];
+    /* Try each word/phrase in the string against keys */
+    for (const key of Object.keys(PORT_COORDS)) {
+      if (portStr.includes(key)) return PORT_COORDS[key];
+    }
+    return null;
   }
 
-  /* ---------- demo shipments ---------- */
+  /* ── Demo shipments ── */
   const now = Date.now();
   const days = (n) => new Date(now + n * 864e5).toISOString();
   const DEMO = {
@@ -121,7 +194,6 @@
     },
   };
 
-  /* ---------- local test shipments ---------- */
   function localShipments() {
     try {
       return JSON.parse(localStorage.getItem("ffl_shipments") || "[]");
@@ -130,10 +202,7 @@
     }
   }
 
-  /* ─────────────────────────────────────────────────
-     ALERT FLAGS — extra stepper icons between
-     Customs and Delivered, triggered from admin panel
-     ─────────────────────────────────────────────── */
+  /* ── Alert flag types ── */
   const FLAG_TYPES = {
     weather_delay: {
       label: "Weather delay",
@@ -143,12 +212,12 @@
     demurrage: {
       label: "Additional demurrage",
       color: "#e6954a",
-      icon: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 3.5 17 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+      icon: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     },
     clearance_fee: {
       label: "Clearance fee",
       color: "#2a9d8f",
-      icon: `<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2 10h20" stroke="currentColor" stroke-width="1.6"/><path d="M6 15h4M14 15h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+      icon: `<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2 10h20" stroke="currentColor" stroke-width="1.6"/></svg>`,
     },
     irs_hold: {
       label: "IRS hold",
@@ -158,7 +227,7 @@
     fbi_fraud: {
       label: "FBI / Fraud review",
       color: "#8e44ad",
-      icon: `<svg viewBox="0 0 24 24" fill="none"><path d="M3 3h6l3 6-4 2.5a11 11 0 0 0 4.5 4.5L15 12l6 3v6a2 2 0 0 1-2 2A18 18 0 0 1 1 5a2 2 0 0 1 2-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="m15 9 5-5M20 4h-5M20 4v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+      icon: `<svg viewBox="0 0 24 24" fill="none"><path d="M3 3h6l3 6-4 2.5a11 11 0 0 0 4.5 4.5L15 12l6 3v6a2 2 0 0 1-2 2A18 18 0 0 1 1 5a2 2 0 0 1 2-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     },
     custom: {
       label: "Alert",
@@ -167,7 +236,7 @@
     },
   };
 
-  /* ---------- base stages ---------- */
+  /* ── Stage / status definitions ── */
   const BASE_STAGES = [
     { key: "booked", label: "Booked" },
     { key: "departed", label: "Departed" },
@@ -175,7 +244,6 @@
     { key: "customs", label: "Customs" },
     { key: "delivered", label: "Delivered" },
   ];
-
   const STATUS = {
     booked: { label: "Booked", stage: 0, tone: "neutral" },
     in_transit: { label: "In transit", stage: 2, tone: "live" },
@@ -186,7 +254,7 @@
     exception: { label: "Exception", stage: 2, tone: "alert" },
   };
 
-  /* ---------- formatting ---------- */
+  /* ── Formatters ── */
   const bigDate = (iso) =>
     !iso
       ? "—"
@@ -219,8 +287,8 @@
           hour: "2-digit",
           minute: "2-digit",
         });
-  const fmtWeight = (kg) =>
-    kg == null || kg === ""
+  const fmtWt = (kg) =>
+    kg == null
       ? "—"
       : Number(kg).toLocaleString(undefined, { maximumFractionDigits: 1 }) +
         " kg";
@@ -237,13 +305,13 @@
         })[c],
     );
 
-  /* ---------- icons ---------- */
+  /* ── SVG icons ── */
   const ICON = {
-    booked: `<svg viewBox="0 0 24 24" fill="none"><path d="M8 4h8v3H8zM6 5h2v2H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-2V5h2a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3z" fill="currentColor"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
-    ocean_departed: `<svg viewBox="0 0 24 24" fill="none"><path d="M4 14h16l-2 5H6l-2-5Zm2-1V8h5m0 5V4l5 3v6" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>`,
-    ocean_transit: `<svg viewBox="0 0 24 24" fill="none"><path d="M3 15h18l-2.2 5H5.2L3 15Zm3-1V9h6m0 5V6l4 2.5V14" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/><path d="M2 21c1.5 0 1.5-1 3-1s1.5 1 3 1 1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
-    air_departed: `<svg viewBox="0 0 24 24" fill="none"><path d="M3 19h18M6 14l3 1 4-6 2-4 1 1-1 4 4 3 1 2-5-1-3 4-2-1 1-3-4-1v-2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>`,
-    air_transit: `<svg viewBox="0 0 24 24" fill="none"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16Z" fill="currentColor"/></svg>`,
+    booked: `<svg viewBox="0 0 24 24" fill="none"><path d="M8 4h8v3H8zM6 5h2v2H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-2V5h2a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3z" fill="currentColor"/></svg>`,
+    ocean_dep: `<svg viewBox="0 0 24 24" fill="none"><path d="M4 14h16l-2 5H6l-2-5Zm2-1V8h5m0 5V4l5 3v6" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>`,
+    ocean_tr: `<svg viewBox="0 0 24 24" fill="none"><path d="M3 15h18l-2.2 5H5.2L3 15Zm3-1V9h6m0 5V6l4 2.5V14" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/><path d="M2 21c1.5 0 1.5-1 3-1s1.5 1 3 1 1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+    air_dep: `<svg viewBox="0 0 24 24" fill="none"><path d="M3 19h18M6 14l3 1 4-6 2-4 1 1-1 4 4 3 1 2-5-1-3 4-2-1 1-3-4-1v-2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>`,
+    air_tr: `<svg viewBox="0 0 24 24" fill="none"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16Z" fill="currentColor"/></svg>`,
     customs: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     delivered: `<svg viewBox="0 0 24 24" fill="none"><path d="M3 10 12 4l9 6v10H3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m8.5 14 2.2 2.2L15.5 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   };
@@ -252,17 +320,17 @@
       ? ICON.booked
       : key === "departed"
         ? isAir
-          ? ICON.air_departed
-          : ICON.ocean_departed
+          ? ICON.air_dep
+          : ICON.ocean_dep
         : key === "transit"
           ? isAir
-            ? ICON.air_transit
-            : ICON.ocean_transit
+            ? ICON.air_tr
+            : ICON.ocean_tr
           : key === "customs"
             ? ICON.customs
             : ICON.delivered;
 
-  /* ---------- data access ---------- */
+  /* ── Data lookup ── */
   const eq = (a, b) => (a || "").toLowerCase() === (b || "").toLowerCase();
   const matchLocal = (q) =>
     localShipments().find(
@@ -275,7 +343,7 @@
   async function lookup(raw) {
     const q = raw.trim();
     if (!q) return { none: true };
-    if (LIVE) {
+    if (supabase) {
       const { data, error } = await supabase
         .from("shipments")
         .select("*, tracking_events(event_time, location, description)")
@@ -283,10 +351,7 @@
           `tracking_number.ilike.${q},bill_of_lading.ilike.${q},container_number.ilike.${q}`,
         )
         .limit(1);
-      if (error) throw error;
-      if (data && data.length) return { shipment: data[0] };
-      const loc = matchLocal(q);
-      return loc ? { shipment: loc } : { none: true };
+      if (!error && data && data.length) return { shipment: data[0] };
     }
     const loc = matchLocal(q);
     if (loc) return { shipment: loc };
@@ -299,35 +364,190 @@
     return hit ? { shipment: structuredClone(hit) } : { none: true };
   }
 
-  /* ---------- view switching ---------- */
-  const panels = [loading, notFound, errorState, result];
-  const show = (node) =>
-    panels.forEach((p) => p && p.classList.toggle("hidden", p !== node));
+  /* ── DOM refs ── */
+  const mapWrap = document.getElementById("mapWrap");
+  const mapLoading = document.getElementById("mapLoading");
+  const mapBadge = document.getElementById("mapBadge");
+  const mapOriginLbl = document.getElementById("mapOriginLabel");
+  const mapDestLbl = document.getElementById("mapDestLabel");
+  const resultStates = document.getElementById("resultStates");
+  const resultContent = document.getElementById("resultContent");
+  const resultEl = document.getElementById("result");
+  const resultTopbar = document.getElementById("resultTopbar");
+  const resultTNBar = document.getElementById("resultTNBar");
+  const stateIdle = document.getElementById("stateIdle");
+  const quickInput = document.getElementById("quickInput");
+  const quickSearch = document.getElementById("quickSearch");
 
-  /* ─────────────────────────────────────────────────
-     RENDER
-     ─────────────────────────────────────────────── */
+  /* ── Map instance ── */
+  let mapInst = null;
+
+  function buildMap(s) {
+    const originCoords = resolveCoords(s.origin_port);
+    const destCoords = resolveCoords(s.destination_port);
+
+    /* Short labels for badge */
+    const originLabel = (s.origin_port || "—")
+      .split(",")[0]
+      .split("(")[0]
+      .trim();
+    const destLabel = (s.destination_port || "—")
+      .split(",")[0]
+      .split("(")[0]
+      .trim();
+    mapOriginLbl.textContent = originLabel;
+    mapDestLbl.textContent = destLabel;
+
+    mapWrap.style.display = "block";
+    mapLoading.style.display = "flex";
+
+    /* Slight delay so layout paints before Leaflet sizes itself */
+    setTimeout(() => {
+      if (mapInst) {
+        mapInst.remove();
+        mapInst = null;
+      }
+
+      /* Default to Iraq→world mid-point if coords missing */
+      const fallback = [25.0, 45.0];
+      const oCoords = originCoords || fallback;
+      const dCoords = destCoords || fallback;
+
+      /* Centre on midpoint, zoom to fit both points */
+      const midLat = (oCoords[0] + dCoords[0]) / 2;
+      const midLng = (oCoords[1] + dCoords[1]) / 2;
+
+      mapInst = L.map("trackMap", {
+        zoomControl: true,
+        scrollWheelZoom: false,
+      }).setView([midLat, midLng], 3);
+
+      /* OpenStreetMap tiles (free, no key needed) */
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution:
+          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 18,
+      }).addTo(mapInst);
+
+      /* Origin marker — teal circle */
+      const originIcon = L.divIcon({
+        className: "",
+        html: `<div style="width:16px;height:16px;background:#2A9D8F;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+      });
+      /* Destination marker — amber circle */
+      const destIcon = L.divIcon({
+        className: "",
+        html: `<div style="width:16px;height:16px;background:#F2A104;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+      });
+      /* Current location pulse (most recent tracking event location) */
+      const pulseIcon = L.divIcon({
+        className: "",
+        html: `<div style="width:14px;height:14px;background:#F2A104;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 0 rgba(242,161,4,.5);animation:pulse-ring 2s infinite"></div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+      });
+
+      if (originCoords) {
+        L.marker(originCoords, { icon: originIcon })
+          .addTo(mapInst)
+          .bindTooltip(`<strong>Origin</strong><br>${esc(originLabel)}`, {
+            permanent: false,
+            direction: "top",
+          });
+      }
+      if (destCoords) {
+        L.marker(destCoords, { icon: destIcon })
+          .addTo(mapInst)
+          .bindTooltip(`<strong>Destination</strong><br>${esc(destLabel)}`, {
+            permanent: false,
+            direction: "top",
+          });
+      }
+
+      /* Draw route line */
+      if (originCoords && destCoords) {
+        /* Build waypoints through any known event locations */
+        const nowMs = Date.now();
+        const events = (s.tracking_events || [])
+          .filter((e) => new Date(e.event_time).getTime() <= nowMs)
+          .sort((a, b) => new Date(a.event_time) - new Date(b.event_time));
+        const waypoints = [originCoords];
+        events.forEach((e) => {
+          const c = resolveCoords(e.location);
+          if (c) {
+            const last = waypoints[waypoints.length - 1];
+            if (last[0] !== c[0] || last[1] !== c[1]) waypoints.push(c);
+          }
+        });
+        if (waypoints[waypoints.length - 1][0] !== destCoords[0])
+          waypoints.push(destCoords);
+
+        /* Dashed future route */
+        L.polyline([originCoords, destCoords], {
+          color: "#aaa",
+          weight: 1.5,
+          dashArray: "5 6",
+          opacity: 0.5,
+        }).addTo(mapInst);
+
+        /* Solid travelled route */
+        if (waypoints.length > 1) {
+          L.polyline(waypoints, {
+            color: "#2A9D8F",
+            weight: 3,
+            opacity: 0.85,
+          }).addTo(mapInst);
+
+          /* Pulse at current position (last known waypoint before destination) */
+          const currentPos =
+            waypoints.length >= 2 ? waypoints[waypoints.length - 2] : null;
+          if (
+            currentPos &&
+            (currentPos[0] !== destCoords[0] || currentPos[1] !== destCoords[1])
+          ) {
+            L.marker(currentPos, { icon: pulseIcon })
+              .addTo(mapInst)
+              .bindTooltip(`<strong>Last known position</strong>`, {
+                permanent: false,
+                direction: "top",
+              });
+          }
+        }
+
+        /* Fit map to show all points */
+        const allPts = [...waypoints, destCoords];
+        mapInst.fitBounds(L.latLngBounds(allPts), { padding: [30, 30] });
+      }
+
+      mapLoading.style.display = "none";
+      mapBadge.style.display = "flex";
+    }, 80);
+  }
+
+  /* ── Render tracking result ── */
   function render(s) {
     const st = STATUS[s.status] || STATUS.booked;
     const isAir = s.mode === "air";
     const isDone = st.tone === "done";
     const isAlert = st.tone === "alert";
 
-    /* only show events whose time has passed */
     const nowMs = Date.now();
     const events = (s.tracking_events || [])
       .filter((e) => new Date(e.event_time).getTime() <= nowMs)
       .sort((a, b) => new Date(b.event_time) - new Date(a.event_time));
     const latest = events[0];
 
-    /* headline */
+    /* Headline */
     let hLabel, hDate;
     if (isDone) {
       hLabel = "Delivered";
       hDate = bigDate(latest ? latest.event_time : s.eta);
     } else if (isAlert) {
-      hLabel =
-        st.label === "Delayed" ? "Delivery delayed" : "Shipment exception";
+      hLabel = "Delivery delayed";
       hDate = bigDate(s.eta);
     } else {
       hLabel = "Estimated delivery";
@@ -337,45 +557,28 @@
       esc(st.label) +
       esc(latest && latest.location ? " · " + latest.location : "");
 
-    /* ── build dynamic stages with alert flags injected before Delivered ── */
+    /* Flags */
     const flags = (s.alert_flags || []).filter((f) => f.active);
-    const STAGES = [...BASE_STAGES];
-    // Insert active flags between customs (index 3) and delivered (index 4)
     const flagStages = flags.map((f, i) => ({
       key: "flag_" + i,
       label:
         f.custom_label ||
         (FLAG_TYPES[f.type] ? FLAG_TYPES[f.type].label : "Alert"),
       flagType: f.type,
-      flagColor: f.custom_label
-        ? "#f2a104"
-        : FLAG_TYPES[f.type]
-          ? FLAG_TYPES[f.type].color
-          : "#f2a104",
+      flagColor: FLAG_TYPES[f.type] ? FLAG_TYPES[f.type].color : "#f2a104",
       flagIcon: FLAG_TYPES[f.type]
         ? FLAG_TYPES[f.type].icon
         : FLAG_TYPES.custom.icon,
     }));
-
-    // Build the full stages array: Booked, Departed, In transit, Customs, [flags...], Delivered
     const fullStages = [
       ...BASE_STAGES.slice(0, 4),
       ...flagStages,
       BASE_STAGES[4],
     ];
 
-    // Map status stage index to full stages (flags count as "between customs and delivered")
-    let activeIdx = st.stage; // 0-4 base
-    if (activeIdx >= 4 && !isDone) {
-      // between customs and delivered — active is at last flag or customs
-      activeIdx = 3 + flagStages.length; // sits on last flag
-    } else if (isDone) {
-      activeIdx = fullStages.length - 1;
-    } else if (activeIdx > 3) {
-      activeIdx = 3 + flagStages.length;
-    }
-
-    const totalStages = fullStages.length;
+    let activeIdx = st.stage;
+    if (isDone) activeIdx = fullStages.length - 1;
+    else if (activeIdx > 3) activeIdx = 3 + flagStages.length;
 
     const stepsHtml = fullStages
       .map((stage, i) => {
@@ -389,26 +592,18 @@
         ]
           .join(" ")
           .trim();
-
-        let iconHtml,
-          iconStyle = "";
-        if (isFlag) {
-          iconHtml = stage.flagIcon;
-          iconStyle = `--flag-color:${stage.flagColor}`;
-        } else {
-          iconHtml = stageIcon(stage.key, isAir);
-        }
-        const flagCls = isFlag ? " fx-stage-flag" : "";
-        return `<li class="fx-stage${flagCls} ${cls}" style="${iconStyle}">
+        let iconHtml = isFlag ? stage.flagIcon : stageIcon(stage.key, isAir);
+        const style = isFlag ? `--flag-color:${stage.flagColor}` : "";
+        return `<li class="fx-stage${isFlag ? " fx-stage-flag" : ""} ${cls}" style="${style}">
         <span class="fx-ic">${iconHtml}</span>
         <span class="fx-stage-label">${esc(stage.label)}</span>
       </li>`;
       })
       .join("");
 
-    const pct = (activeIdx / (totalStages - 1)) * 100;
+    const pct = (activeIdx / (fullStages.length - 1)) * 100;
 
-    /* travel history */
+    /* Travel history */
     const groups = [],
       byDay = new Map();
     events.forEach((e) => {
@@ -439,7 +634,7 @@
         })
         .join("") || `<p class="fx-empty">No tracking events yet.</p>`;
 
-    /* alert flags notice strip (shows active flags to customer with note) */
+    /* Alert flags notice */
     const flagsNoticeHtml = flags.length
       ? `
       <div class="fx-flags-notice">
@@ -447,33 +642,28 @@
           .map((f) => {
             const ft = FLAG_TYPES[f.type] || FLAG_TYPES.custom;
             const label = f.custom_label || ft.label;
-            const color =
-              f.custom_label && !FLAG_TYPES[f.type] ? "#f2a104" : ft.color;
-            return `<div class="fx-flag-item" style="--fc:${color}">
+            return `<div class="fx-flag-item" style="--fc:${ft.color}">
             <span class="fx-flag-ic">${ft.icon}</span>
-            <div>
-              <p class="fx-flag-title">${esc(label)}</p>
-              ${f.note ? `<p class="fx-flag-note">${esc(f.note)}</p>` : ""}
-            </div>
+            <div><p class="fx-flag-title">${esc(label)}</p>${f.note ? `<p class="fx-flag-note">${esc(f.note)}</p>` : ""}</div>
           </div>`;
           })
           .join("")}
       </div>`
       : "";
 
-    /* shipment facts */
+    /* Shipment facts */
     const facts = [
       [
         "Service",
         isAir ? "International air freight" : "International ocean freight",
       ],
       [isAir ? "Flight" : "Vessel", s.vessel_name],
-      [isAir ? "Flight no." : "Voyage", s.voyage_number, true],
+      [isAir ? "Flt no." : "Voyage", s.voyage_number, true],
       ["Container", s.container_number, true],
       ["Bill of lading", s.bill_of_lading, true],
       ["Commodity", s.commodity],
-      ["Total weight", fmtWeight(s.weight_kg)],
-      ["Pieces", s.pieces != null && s.pieces !== "" ? String(s.pieces) : "—"],
+      ["Total weight", fmtWt(s.weight_kg)],
+      ["Pieces", s.pieces != null ? String(s.pieces) : "—"],
       ["Departed (ETD)", fmtDate(s.etd)],
       ["Arrival (ETA)", fmtDate(s.eta)],
     ];
@@ -484,7 +674,7 @@
       )
       .join("");
 
-    result.innerHTML = `
+    resultEl.innerHTML = `
       <div class="fx">
         <div class="fx-head fx-tone-${st.tone}">
           <div class="fx-status">
@@ -498,14 +688,11 @@
             <p class="fx-id-service">${isAir ? "Air freight" : "Ocean freight"}</p>
           </div>
         </div>
-
         <div class="fx-stepper">
           <div class="fx-track"><div class="fx-progress" id="fxProgress"></div></div>
           <ol class="fx-stages">${stepsHtml}</ol>
         </div>
-
         ${flagsNoticeHtml}
-
         <div class="fx-body">
           <section class="fx-history-wrap">
             <h3 class="fx-h">Travel history</h3>
@@ -531,54 +718,92 @@
         </div>
       </div>`;
 
-    show(result);
+    /* Show result panel */
+    resultStates.style.display = "none";
+    resultContent.style.display = "block";
+
     requestAnimationFrame(() => {
-      const bar = el("fxProgress");
+      const bar = document.getElementById("fxProgress");
       if (bar) bar.style.width = pct + "%";
     });
   }
 
-  /* ---------- controller ---------- */
+  /* ── Show states ── */
+  function showLoading() {
+    resultStates.style.display = "block";
+    resultContent.style.display = "none";
+    mapWrap.style.display = "none";
+    resultStates.innerHTML = `<div class="state-card">
+      <div class="spinner-lg"></div>
+      <h2>Locating shipment…</h2>
+    </div>`;
+  }
+  function showNotFound(q) {
+    mapWrap.style.display = "none";
+    resultStates.style.display = "block";
+    resultContent.style.display = "none";
+    resultStates.innerHTML = `<div class="state-card">
+      <div class="state-icon">🔍</div>
+      <h2>No shipment found</h2>
+      <p>We couldn't find <strong>${esc(q)}</strong>. Check for typos or contact us.</p>
+      <a href="tracking.html">← Try another number</a>
+    </div>`;
+  }
+  function showError(msg) {
+    mapWrap.style.display = "none";
+    resultStates.style.display = "block";
+    resultContent.style.display = "none";
+    resultStates.innerHTML = `<div class="state-card">
+      <div class="state-icon">⚠️</div>
+      <h2>Something went wrong</h2>
+      <p>${esc(msg || "Couldn't reach the tracking service. Try again in a moment.")}</p>
+      <a href="tracking.html">← Go back</a>
+    </div>`;
+  }
+
+  /* ── Main handler ── */
   async function handle(raw) {
-    const anchor = el("searchBlock");
-    if (anchor) anchor.scrollIntoView({ block: "start", behavior: "smooth" });
-    show(loading);
+    const q = (raw || "").trim();
+    if (!q) return;
+
+    /* Update URL bar without reload */
+    const url = new URL(location.href);
+    url.searchParams.set("track", q);
+    history.replaceState(null, "", url);
+
+    resultTNBar.textContent = q;
+    resultTopbar.style.display = "flex";
+    if (quickInput) quickInput.value = q;
+    document.title = `${q} — Fast Forward Logistics`;
+
+    showLoading();
     try {
-      const { shipment, none } = await lookup(raw);
+      const { shipment, none } = await lookup(q);
       if (none || !shipment) {
-        show(notFound);
+        showNotFound(q);
         return;
       }
+      /* Build map first (above result), then render details */
+      buildMap(shipment);
       render(shipment);
     } catch (err) {
       console.error(err);
-      if (errorMsg)
-        errorMsg.textContent =
-          (err && err.message ? err.message : "Unexpected error") +
-          ". Check your Supabase config.";
-      show(errorState);
+      showError(err.message);
     }
   }
 
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    handle(input.value);
-  });
-  const hints = el("demoHints");
-  if (hints)
-    hints.addEventListener("click", (e) => {
-      const btn = e.target.closest("button[data-track]");
-      if (!btn) return;
-      input.value = btn.dataset.track;
-      handle(btn.dataset.track);
+  /* ── Quick search in result topbar ── */
+  function doQuickSearch() {
+    const v = quickInput ? quickInput.value.trim() : "";
+    if (v) handle(v);
+  }
+  if (quickSearch) quickSearch.addEventListener("click", doQuickSearch);
+  if (quickInput)
+    quickInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") doQuickSearch();
     });
 
+  /* ── Auto-run from URL param ── */
   const param = new URLSearchParams(location.search).get("track");
-  if (param) {
-    input.value = param;
-    handle(param);
-  }
-
-  /* expose FLAG_TYPES so admin can read it */
-  window.FFL_FLAG_TYPES = FLAG_TYPES;
+  if (param) handle(param);
 })();

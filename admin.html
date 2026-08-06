@@ -5,671 +5,3295 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <title>Admin — Fast Forward Logistics</title>
     <meta name="robots" content="noindex" />
-    <link rel="stylesheet" href="assest/css/admin.css" />
-    <!-- EmailJS SDK — free browser email sending -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <style>
+      /* ══════════════════════════════════════════════════════
+   RESET & TOKENS
+══════════════════════════════════════════════════════ */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --teal: #1a6b5e;
+        --teal-lt: #2a9d8f;
+        --ink: #0b1f33;
+        --ink2: #16324a;
+        --amber: #f2a104;
+        --amber-dk: #c07e00;
+        --alert: #d64545;
+        --green: #27ae60;
+        --muted: #7a8a99;
+        --muted-dk: #516478;
+        --line: rgba(22, 50, 74, 0.12);
+        --paper: #f4f6f9;
+        --white: #fff;
+        --r: 12px;
+        --r-sm: 8px;
+        --shadow: 0 2px 12px rgba(11, 31, 51, 0.08);
+        --sidebar-w: 260px;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+        -webkit-font-smoothing: antialiased;
+        line-height: 1.55;
+        overflow-x: hidden;
+      }
+
+      /* ══════════════════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════════════════ */
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: var(--sidebar-w);
+        background: var(--ink);
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+      }
+      .sidebar-header {
+        padding: 22px 20px 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .sidebar-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        margin-bottom: 18px;
+      }
+      .sidebar-logo-icon {
+        width: 38px;
+        height: 38px;
+        background: var(--teal);
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+      }
+      .sidebar-logo-icon svg {
+        color: #fff;
+      }
+      .sidebar-logo-text {
+        font-size: 15px;
+        font-weight: 800;
+        color: #fff;
+        line-height: 1.2;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+      .sidebar-logo-text span {
+        color: var(--amber);
+      }
+      .sidebar-user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .sidebar-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--teal-lt);
+        display: grid;
+        place-items: center;
+        font-size: 14px;
+        font-weight: 700;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .sidebar-user-info p {
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        line-height: 1.2;
+      }
+      .sidebar-user-info span {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .sidebar-nav {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 0;
+      }
+      .nav-section-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.35);
+        padding: 14px 20px 4px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 20px;
+        cursor: pointer;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        transition:
+          background 0.15s,
+          color 0.15s;
+        position: relative;
+        border: 0;
+        background: transparent;
+        width: 100%;
+        text-align: left;
+      }
+      .nav-item svg {
+        flex-shrink: 0;
+        opacity: 0.7;
+      }
+      .nav-item:hover {
+        background: rgba(255, 255, 255, 0.07);
+        color: #fff;
+      }
+      .nav-item:hover svg {
+        opacity: 1;
+      }
+      .nav-item.active {
+        background: rgba(42, 157, 143, 0.18);
+        color: #fff;
+      }
+      .nav-item.active svg {
+        opacity: 1;
+        color: var(--teal-lt);
+      }
+      .nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--teal-lt);
+        border-radius: 0 3px 3px 0;
+      }
+
+      .sidebar-footer {
+        padding: 16px 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .sidebar-footer p {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.3);
+        text-align: center;
+      }
+
+      /* ══════════════════════════════════════════════════════
+   TOPBAR (mobile + desktop)
+══════════════════════════════════════════════════════ */
+      .topbar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        left: var(--sidebar-w);
+        height: 60px;
+        background: var(--ink2);
+        z-index: 90;
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        gap: 14px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      }
+      .topbar-hamburger {
+        display: none;
+        border: 0;
+        background: transparent;
+        color: #fff;
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 7px;
+      }
+      .topbar-hamburger:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .topbar-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        flex: 1;
+      }
+      .topbar-badge {
+        font-size: 10px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 5px;
+        background: rgba(242, 161, 4, 0.18);
+        color: var(--amber);
+      }
+
+      /* overlay for mobile sidebar */
+      .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 99;
+      }
+      .sidebar-overlay.show {
+        display: block;
+      }
+
+      /* ══════════════════════════════════════════════════════
+   MAIN CONTENT
+══════════════════════════════════════════════════════ */
+      .main {
+        margin-left: var(--sidebar-w);
+        padding-top: 60px;
+        min-height: 100vh;
+      }
+      .page-content {
+        padding: 28px 24px;
+        max-width: 1200px;
+      }
+
+      /* ══════════════════════════════════════════════════════
+   SECTIONS
+══════════════════════════════════════════════════════ */
+      .sec {
+        display: none;
+      }
+      .sec.active {
+        display: block;
+        animation: fadeUp 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* welcome bar */
+      .welcome-bar {
+        margin-bottom: 24px;
+      }
+      .welcome-bar h1 {
+        font-size: clamp(22px, 3vw, 30px);
+        font-weight: 800;
+        color: var(--ink);
+        line-height: 1.2;
+      }
+      .welcome-bar p {
+        font-size: 14px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      /* quick action buttons */
+      .quick-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+      }
+      .qa-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 20px;
+        border-radius: 9px;
+        border: 0;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .qa-btn.green {
+        background: var(--green);
+        color: #fff;
+      }
+      .qa-btn.green:hover {
+        background: #219a52;
+      }
+      .qa-btn.red {
+        background: var(--alert);
+        color: #fff;
+      }
+      .qa-btn.red:hover {
+        background: #b52f2f;
+      }
+      .qa-btn.blue {
+        background: var(--ink2);
+        color: #fff;
+      }
+      .qa-btn.blue:hover {
+        background: var(--ink);
+      }
+
+      /* ── stat cards row ── */
+      .stat-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .stat-card {
+        background: var(--white);
+        border-radius: var(--r);
+        padding: 20px 22px;
+        box-shadow: var(--shadow);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        border: 1px solid var(--line);
+      }
+      .stat-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+      }
+      .stat-icon.teal {
+        background: rgba(42, 157, 143, 0.12);
+        color: var(--teal-lt);
+      }
+      .stat-icon.amber {
+        background: rgba(242, 161, 4, 0.12);
+        color: var(--amber-dk);
+      }
+      .stat-icon.green {
+        background: rgba(39, 174, 96, 0.12);
+        color: var(--green);
+      }
+      .stat-icon.alert {
+        background: rgba(214, 69, 69, 0.1);
+        color: var(--alert);
+      }
+      .stat-body {
+      }
+      .stat-num {
+        display: block;
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.5px;
+        color: var(--ink);
+      }
+      .stat-lbl {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 3px;
+        letter-spacing: 0.3px;
+      }
+
+      /* ── chart card ── */
+      .chart-card {
+        background: var(--white);
+        border-radius: var(--r);
+        padding: 24px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--line);
+        margin-bottom: 24px;
+      }
+      .chart-card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .chart-card-head h2 {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .chart-year {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .chart-tabs {
+        display: flex;
+        gap: 4px;
+      }
+      .chart-tab {
+        border: 0;
+        background: rgba(22, 50, 74, 0.06);
+        color: var(--muted-dk);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        padding: 5px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        text-transform: uppercase;
+        transition: all 0.15s;
+      }
+      .chart-tab.active {
+        background: var(--teal);
+        color: #fff;
+      }
+      .chart-wrap {
+        position: relative;
+        height: 260px;
+        margin-top: 16px;
+      }
+      .chart-footer {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 12px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .chart-legend {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .chart-legend-dot {
+        width: 16px;
+        height: 3px;
+        background: var(--teal-lt);
+        border-radius: 2px;
+      }
+
+      /* ── two-col layout for stats + latest ── */
+      .dash-bottom {
+        display: grid;
+        grid-template-columns: 1fr 1.3fr;
+        gap: 20px;
+        margin-bottom: 24px;
+      }
+
+      /* ── latest shipments ── */
+      .latest-card {
+        background: var(--white);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        border: 1px solid var(--line);
+        overflow: hidden;
+      }
+      .latest-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .latest-head h3 {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .latest-see-all {
+        font-size: 13px;
+        color: var(--teal-lt);
+        font-weight: 600;
+        text-decoration: none;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+      }
+      .latest-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--line);
+        transition: background 0.15s;
+        cursor: pointer;
+      }
+      .latest-item:last-child {
+        border-bottom: none;
+      }
+      .latest-item:hover {
+        background: rgba(22, 50, 74, 0.03);
+      }
+      .latest-tn {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 2px;
+      }
+      .latest-email {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .latest-arrow {
+        margin-left: auto;
+        color: var(--teal-lt);
+        flex-shrink: 0;
+      }
+
+      /* ── mini stat cards (bottom left) ── */
+      .mini-stats {
+        display: grid;
+        gap: 14px;
+      }
+      .mini-stat {
+        background: var(--white);
+        border-radius: var(--r);
+        padding: 16px 18px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .mini-stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+      }
+      .mini-stat-num {
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1;
+        color: var(--ink);
+      }
+      .mini-stat-lbl {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      /* ══════════════════════════════════════════════════════
+   SHARED SECTION STYLES (filters, ship list, form etc.)
+══════════════════════════════════════════════════════ */
+      .sec-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .sec-head h2 {
+        font-size: 20px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .note {
+        background: rgba(242, 161, 4, 0.1);
+        border: 1px solid rgba(242, 161, 4, 0.35);
+        border-radius: var(--r-sm);
+        padding: 11px 16px;
+        font-size: 13px;
+        color: var(--ink2);
+        margin-bottom: 20px;
+      }
+      .note strong {
+        color: var(--ink);
+      }
+      .filters {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .filters button {
+        font-size: 11px;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        padding: 5px 12px;
+        border-radius: 7px;
+        border: 1px solid var(--line);
+        background: var(--paper);
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .filters button:hover {
+        border-color: var(--ink);
+        color: var(--ink);
+      }
+      .filters button.active {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+      }
+
+      /* ship cards */
+      .ship-list {
+        display: grid;
+        gap: 10px;
+      }
+      .ship-card {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--r-sm);
+        padding: 16px 18px;
+        box-shadow: var(--shadow);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 16px;
+        align-items: start;
+        transition: border-color 0.15s;
+      }
+      .ship-card:hover {
+        border-color: rgba(42, 157, 143, 0.4);
+      }
+      .ship-tn {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        margin-bottom: 3px;
+      }
+      .ship-lane {
+        font-size: 13px;
+        color: var(--muted-dk);
+        margin-bottom: 7px;
+      }
+      .ship-party {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-bottom: 2px;
+      }
+      .ship-party strong {
+        color: var(--ink2);
+        font-weight: 600;
+      }
+      .ship-meta {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 7px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .ship-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: stretch;
+        min-width: 126px;
+      }
+
+      /* badges */
+      .badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 5px;
+        background: #e4e8eb;
+        color: var(--muted-dk);
+      }
+      .badge.booked {
+        background: rgba(22, 50, 74, 0.1);
+        color: var(--ink2);
+      }
+      .badge.in_transit,
+      .badge.customs,
+      .badge.out_for_delivery {
+        background: rgba(242, 161, 4, 0.18);
+        color: var(--amber-dk);
+      }
+      .badge.delivered {
+        background: rgba(42, 157, 143, 0.18);
+        color: var(--teal-lt);
+      }
+      .badge.delayed,
+      .badge.exception {
+        background: rgba(214, 69, 69, 0.14);
+        color: var(--alert);
+      }
+
+      /* buttons */
+      .btn {
+        display: block;
+        width: 100%;
+        padding: 7px 10px;
+        border-radius: 7px;
+        border: 1px solid var(--line);
+        background: var(--paper);
+        color: var(--ink2);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+        transition: all 0.15s;
+      }
+      .btn:hover {
+        border-color: var(--ink);
+        color: var(--ink);
+      }
+      .btn.update {
+        background: rgba(42, 157, 143, 0.1);
+        border-color: rgba(42, 157, 143, 0.4);
+        color: var(--teal-lt);
+      }
+      .btn.update:hover {
+        background: rgba(42, 157, 143, 0.2);
+        border-color: var(--teal-lt);
+      }
+      .btn.invoice {
+        background: rgba(11, 31, 51, 0.08);
+        border-color: rgba(11, 31, 51, 0.2);
+        color: var(--ink2);
+      }
+      .btn.invoice:hover {
+        background: var(--ink);
+        color: #fff;
+      }
+      .btn.notify {
+        background: rgba(42, 157, 143, 0.08);
+        border-color: rgba(42, 157, 143, 0.3);
+        color: var(--teal-lt);
+      }
+      .btn.notify:hover {
+        background: rgba(42, 157, 143, 0.18);
+        border-color: var(--teal-lt);
+      }
+      .btn.danger {
+        color: var(--alert);
+        border-color: rgba(214, 69, 69, 0.3);
+      }
+      .btn.danger:hover {
+        background: rgba(214, 69, 69, 0.1);
+        border-color: var(--alert);
+      }
+
+      /* empty */
+      .empty {
+        color: var(--muted);
+        font-size: 14px;
+        padding: 32px;
+        text-align: center;
+        border: 1px dashed var(--line);
+        border-radius: var(--r-sm);
+      }
+      .empty a {
+        color: var(--amber-dk);
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      /* ══════════════════════════════════════════════════════
+   USERS PANEL
+══════════════════════════════════════════════════════ */
+      .users-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 14px;
+        margin-top: 16px;
+      }
+      .user-card {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: 18px;
+        box-shadow: var(--shadow);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .user-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--ink2);
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .user-name {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .user-email {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .user-role {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: rgba(42, 157, 143, 0.12);
+        color: var(--teal-lt);
+        margin-top: 5px;
+        display: inline-block;
+      }
+
+      /* ══════════════════════════════════════════════════════
+   FORM (add shipment)
+══════════════════════════════════════════════════════ */
+      .form-panel {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: 28px;
+        box-shadow: var(--shadow);
+        max-width: 900px;
+      }
+      .form-panel h2 {
+        font-size: 22px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 4px;
+      }
+      .form-panel .sub {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 20px;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .form-grid.cols3 {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+      .form-grid .full {
+        grid-column: 1/-1;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .field label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted-dk);
+        letter-spacing: 0.2px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .field label .req {
+        color: var(--alert);
+      }
+      .field label .auto-tag {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        background: rgba(42, 157, 143, 0.12);
+        color: var(--teal-lt);
+        padding: 2px 7px;
+        border-radius: 4px;
+      }
+      .field input,
+      .field select,
+      .field textarea {
+        padding: 10px 13px;
+        border: 1.5px solid var(--line);
+        border-radius: var(--r-sm);
+        font-family: inherit;
+        font-size: 14px;
+        background: var(--paper);
+        color: var(--ink);
+        transition: border-color 0.2s;
+        width: 100%;
+      }
+      .field textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+      .field input:focus,
+      .field select:focus,
+      .field textarea:focus {
+        outline: 0;
+        border-color: var(--ink);
+        box-shadow: 0 0 0 3px rgba(11, 31, 51, 0.07);
+      }
+      .field input.auto-gen {
+        background: rgba(42, 157, 143, 0.05);
+        border-color: rgba(42, 157, 143, 0.3);
+        color: var(--ink2);
+        font-family: monospace;
+        font-size: 13px;
+        letter-spacing: 0.4px;
+      }
+      .field input[readonly].auto-gen {
+        cursor: default;
+      }
+      .fsec {
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--amber-dk);
+        margin: 22px 0 10px;
+        padding-top: 14px;
+        border-top: 1px dashed var(--line);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .charge-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 14px;
+        margin-top: 2px;
+      }
+      .charge-total {
+        background: var(--ink) !important;
+        border-color: var(--ink) !important;
+        color: var(--amber) !important;
+        font-weight: 700 !important;
+        font-size: 15px !important;
+      }
+      .ev-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 20px 0 10px;
+      }
+      .ev-head h3 {
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .ev-rows {
+        display: grid;
+        gap: 8px;
+      }
+      .ev-row {
+        display: grid;
+        grid-template-columns: 185px 1fr 1.4fr auto;
+        gap: 8px;
+        align-items: center;
+        background: rgba(22, 50, 74, 0.03);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 10px;
+      }
+      .ev-row.pending {
+        border-color: rgba(242, 161, 4, 0.3);
+        background: rgba(242, 161, 4, 0.04);
+      }
+      .ev-row.live {
+        border-color: rgba(42, 157, 143, 0.4);
+        background: rgba(42, 157, 143, 0.06);
+      }
+      .ev-row input {
+        padding: 8px 10px;
+        border: 1.5px solid var(--line);
+        border-radius: 7px;
+        font-family: inherit;
+        font-size: 13px;
+        background: var(--white);
+        min-width: 0;
+      }
+      .ev-row input:focus {
+        outline: 0;
+        border-color: var(--ink);
+      }
+      .ev-del {
+        border: 0;
+        background: rgba(214, 69, 69, 0.12);
+        color: var(--alert);
+        width: 32px;
+        height: 32px;
+        border-radius: 7px;
+        cursor: pointer;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      .ev-del:hover {
+        background: rgba(214, 69, 69, 0.22);
+      }
+      .ev-hint {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 8px;
+        padding: 8px 12px;
+        background: rgba(42, 157, 143, 0.06);
+        border-radius: 6px;
+        border: 1px solid rgba(42, 157, 143, 0.15);
+      }
+      .form-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 24px;
+      }
+      .form-actions button {
+        padding: 9px 18px;
+        border-radius: 8px;
+        border: 0;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        cursor: pointer;
+      }
+      .form-actions .save {
+        background: var(--amber);
+        color: var(--ink);
+      }
+      .form-actions .save:hover {
+        background: var(--amber-dk);
+      }
+      .form-actions .ghost {
+        background: transparent;
+        border: 1.5px solid var(--line);
+        color: var(--muted-dk);
+      }
+      .form-actions .ghost:hover {
+        border-color: var(--ink);
+        color: var(--ink);
+      }
+      .form-actions .cancel {
+        background: transparent;
+        border: 1.5px solid rgba(214, 69, 69, 0.3);
+        color: var(--alert);
+      }
+
+      /* quotes */
+      .quote-item {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--r-sm);
+        padding: 14px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        box-shadow: var(--shadow);
+        margin-bottom: 10px;
+      }
+      .q-ref {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 3px;
+      }
+      .q-lane {
+        font-size: 13px;
+        color: var(--ink2);
+        margin-bottom: 3px;
+      }
+      .q-meta {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      /* ══════════════════════════════════════════════════════
+   SETTINGS
+══════════════════════════════════════════════════════ */
+      .settings-panel {
+        max-width: 800px;
+      }
+      .settings-panel h2 {
+        font-size: 22px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 6px;
+      }
+      .panel-sub {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 24px;
+      }
+      .settings-section {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: 22px;
+        box-shadow: var(--shadow);
+        margin-bottom: 18px;
+      }
+      .settings-section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .settings-badge {
+        font-size: 13px;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 6px;
+      }
+      .settings-badge.email {
+        background: rgba(42, 157, 143, 0.12);
+        color: var(--teal-lt);
+      }
+      .settings-badge.sms {
+        background: rgba(242, 161, 4, 0.12);
+        color: var(--amber-dk);
+      }
+      .settings-badge.company {
+        background: rgba(11, 31, 51, 0.1);
+        color: var(--ink2);
+      }
+      .settings-link {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--teal-lt);
+        text-decoration: none;
+      }
+      .settings-link:hover {
+        text-decoration: underline;
+      }
+      .settings-desc {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 14px;
+        line-height: 1.6;
+      }
+      .settings-guide {
+        background: rgba(22, 50, 74, 0.04);
+        border-radius: var(--r-sm);
+        padding: 14px 16px;
+        margin-top: 14px;
+        font-size: 13px;
+        color: var(--muted-dk);
+      }
+      .settings-guide p {
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .settings-guide ol {
+        padding-left: 18px;
+        display: grid;
+        gap: 6px;
+      }
+      .settings-guide a {
+        color: var(--teal-lt);
+      }
+      #settingsMsg {
+        margin-top: 14px;
+        font-size: 13px;
+        display: none;
+      }
+
+      /* ══════════════════════════════════════════════════════
+   MODALS
+══════════════════════════════════════════════════════ */
+      .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(11, 31, 51, 0.55);
+        z-index: 200;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .modal-backdrop.open {
+        display: flex;
+        animation: fadeIn 0.2s ease;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .modal {
+        background: var(--white);
+        border-radius: var(--r);
+        padding: 28px;
+        width: 100%;
+        max-width: 520px;
+        box-shadow: 0 24px 60px -10px rgba(11, 31, 51, 0.4);
+        animation: slideUp 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(20px);
+          opacity: 0;
+        }
+        to {
+          transform: none;
+          opacity: 1;
+        }
+      }
+      .modal-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .modal-head h3 {
+        font-size: 18px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+      .modal-tn {
+        font-size: 12px;
+        font-family: monospace;
+        font-weight: 600;
+        color: var(--amber-dk);
+        background: rgba(242, 161, 4, 0.1);
+        padding: 3px 9px;
+        border-radius: 5px;
+      }
+      .modal-close {
+        border: 0;
+        background: transparent;
+        font-size: 22px;
+        color: var(--muted);
+        cursor: pointer;
+        line-height: 1;
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+      .modal-close:hover {
+        background: var(--paper);
+      }
+      .modal-fields {
+        display: grid;
+        gap: 14px;
+      }
+      .mfield {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .mfield label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted-dk);
+      }
+      .mfield input,
+      .mfield select,
+      .mfield textarea {
+        padding: 10px 13px;
+        border: 1.5px solid var(--line);
+        border-radius: var(--r-sm);
+        font-family: inherit;
+        font-size: 14px;
+        background: var(--paper);
+        color: var(--ink);
+        transition: border-color 0.2s;
+        width: 100%;
+      }
+      .mfield textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+      .mfield input:focus,
+      .mfield select:focus,
+      .mfield textarea:focus {
+        outline: 0;
+        border-color: var(--ink);
+        box-shadow: 0 0 0 4px rgba(11, 31, 51, 0.07);
+      }
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .modal-save {
+        flex: 1;
+        padding: 11px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--teal-lt);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .modal-save:hover {
+        background: #228a7d;
+      }
+      .modal-cancel {
+        padding: 11px 18px;
+        border: 1.5px solid var(--line);
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted-dk);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .modal-cancel:hover {
+        border-color: var(--ink);
+        color: var(--ink);
+      }
+      .update-log {
+        margin-top: 18px;
+        border-top: 1px dashed var(--line);
+        padding-top: 14px;
+      }
+      .update-log-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+      .update-log-list {
+        display: grid;
+        gap: 7px;
+        max-height: 140px;
+        overflow-y: auto;
+      }
+      .update-item {
+        font-size: 12.5px;
+        color: var(--ink2);
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 8px;
+      }
+      .update-time {
+        color: var(--muted);
+        font-size: 11px;
+        white-space: nowrap;
+        margin-top: 1px;
+      }
+
+      /* FLAGS MODAL */
+      .flags-modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(11, 31, 51, 0.6);
+        z-index: 300;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .flags-modal-backdrop.open {
+        display: flex;
+        animation: fadeIn 0.2s ease;
+      }
+      .flags-modal {
+        background: var(--white);
+        border-radius: var(--r);
+        width: 100%;
+        max-width: 620px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 28px 70px -12px rgba(11, 31, 51, 0.45);
+        animation: slideUp 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .flags-modal-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 24px 0;
+        margin-bottom: 16px;
+      }
+      .flags-modal-head h3 {
+        font-size: 18px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+      .flags-modal-tn {
+        font-size: 11px;
+        font-family: monospace;
+        font-weight: 600;
+        color: var(--amber-dk);
+        background: rgba(242, 161, 4, 0.1);
+        padding: 3px 9px;
+        border-radius: 5px;
+      }
+      .flags-modal-close {
+        border: 0;
+        background: transparent;
+        font-size: 22px;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+      .flags-modal-close:hover {
+        background: var(--paper);
+      }
+      .flags-modal-body {
+        padding: 0 24px 24px;
+      }
+      .flag-type-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+      .flag-type-btn {
+        border: 1.5px solid var(--line);
+        border-radius: var(--r-sm);
+        background: var(--paper);
+        padding: 10px;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.15s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+      .flag-type-btn:hover {
+        border-color: var(--ink);
+      }
+      .flag-type-btn.selected {
+        border-color: var(--amber);
+        background: rgba(242, 161, 4, 0.08);
+      }
+      .flag-type-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        color: #fff;
+      }
+      .flag-type-icon svg {
+        width: 18px;
+        height: 18px;
+      }
+      .flag-type-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--ink);
+        line-height: 1.3;
+      }
+      .flag-add-form {
+        background: rgba(22, 50, 74, 0.04);
+        border: 1px dashed var(--line);
+        border-radius: var(--r-sm);
+        padding: 16px;
+        margin-bottom: 18px;
+        display: grid;
+        gap: 10px;
+      }
+      .flag-add-form.hidden {
+        display: none;
+      }
+      .flag-add-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .flag-add-row.single {
+        grid-template-columns: 1fr;
+      }
+      .flag-fld {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .flag-fld label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--muted-dk);
+        letter-spacing: 0.2px;
+        text-transform: uppercase;
+      }
+      .flag-fld input,
+      .flag-fld textarea {
+        padding: 8px 11px;
+        border: 1.5px solid var(--line);
+        border-radius: var(--r-sm);
+        font-family: inherit;
+        font-size: 13px;
+        background: var(--white);
+        color: var(--ink);
+      }
+      .flag-fld textarea {
+        resize: vertical;
+        min-height: 60px;
+      }
+      .flag-fld input:focus,
+      .flag-fld textarea:focus {
+        outline: 0;
+        border-color: var(--ink);
+      }
+      .flag-add-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .flag-add-btn {
+        padding: 8px 16px;
+        border: 0;
+        border-radius: 7px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .flag-add-btn.primary {
+        background: var(--amber);
+        color: var(--ink);
+      }
+      .flag-add-btn.ghost {
+        background: transparent;
+        border: 1.5px solid var(--line);
+        color: var(--muted-dk);
+      }
+      .flag-list {
+        display: grid;
+        gap: 8px;
+      }
+      .flag-list-empty {
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+        padding: 16px;
+        border: 1px dashed var(--line);
+        border-radius: var(--r-sm);
+      }
+      .flag-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: var(--r-sm);
+        padding: 10px 12px;
+      }
+      .flag-item-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .flag-item-icon svg {
+        width: 16px;
+        height: 16px;
+      }
+      .flag-item-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .flag-item-label {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 2px;
+      }
+      .flag-item-note {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+      .flag-item-actions {
+        display: flex;
+        gap: 5px;
+        flex-shrink: 0;
+      }
+      .flag-item-del {
+        border: 0;
+        background: rgba(214, 69, 69, 0.1);
+        color: var(--alert);
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        display: grid;
+        place-items: center;
+      }
+      .flag-item-del:hover {
+        background: rgba(214, 69, 69, 0.2);
+      }
+      .flag-section-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--muted);
+        margin: 16px 0 8px;
+      }
+
+      /* Notif status */
+      #notifStatus.success {
+        background: rgba(42, 157, 143, 0.1);
+        border: 1px solid rgba(42, 157, 143, 0.3);
+        color: var(--teal-lt);
+      }
+      #notifStatus.error {
+        background: rgba(214, 69, 69, 0.1);
+        border: 1px solid rgba(214, 69, 69, 0.3);
+        color: var(--alert);
+      }
+      #notifStatus.sending {
+        background: rgba(242, 161, 4, 0.1);
+        border: 1px solid rgba(242, 161, 4, 0.3);
+        color: var(--amber-dk);
+      }
+
+      /* TOAST */
+      #toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translate(-50%, 130%);
+        background: var(--ink);
+        color: #fff;
+        padding: 12px 22px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 500;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+        transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      #toast.show {
+        transform: translate(-50%, 0);
+      }
+
+      /* ══════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════ */
+      @media (max-width: 1024px) {
+        .dash-bottom {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 900px) {
+        .stat-row {
+          grid-template-columns: 1fr 1fr;
+        }
+        .charge-row {
+          grid-template-columns: 1fr 1fr;
+        }
+        .form-grid.cols3 {
+          grid-template-columns: 1fr 1fr;
+        }
+        .ev-row {
+          grid-template-columns: 1fr 1fr;
+          gap: 6px;
+        }
+        .ev-row input:first-child {
+          grid-column: 1/-1;
+        }
+      }
+      @media (max-width: 768px) {
+        /* collapse sidebar on mobile */
+        .sidebar {
+          transform: translateX(-100%);
+        }
+        .sidebar.open {
+          transform: translateX(0);
+        }
+        .main {
+          margin-left: 0;
+        }
+        .topbar {
+          left: 0;
+        }
+        .topbar-hamburger {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .stat-row {
+          grid-template-columns: 1fr 1fr;
+        }
+        .page-content {
+          padding: 20px 16px;
+        }
+        .chart-wrap {
+          height: 200px;
+        }
+      }
+      @media (max-width: 520px) {
+        .stat-row {
+          grid-template-columns: 1fr 1fr;
+        }
+        .quick-actions {
+          flex-direction: column;
+        }
+        .qa-btn {
+          width: 100%;
+          justify-content: center;
+        }
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+        .form-grid .full {
+          grid-column: 1;
+        }
+        .form-grid.cols3 {
+          grid-template-columns: 1fr;
+        }
+        .charge-row {
+          grid-template-columns: 1fr;
+        }
+        .ship-card {
+          grid-template-columns: 1fr;
+        }
+        .ship-actions {
+          flex-direction: row;
+          flex-wrap: wrap;
+          min-width: 0;
+        }
+        .ship-actions .btn {
+          width: auto;
+          flex: 1;
+          min-width: 80px;
+        }
+        .flag-type-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      /* ══════════════════════════════════════════════════════
+   QUICK SMS PANEL
+══════════════════════════════════════════════════════ */
+      .sms-panel {
+        max-width: 780px;
+        display: grid;
+        gap: 20px;
+      }
+      .sms-card {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: 26px;
+        box-shadow: var(--shadow);
+      }
+      .sms-card-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .sms-card-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 11px;
+        background: var(--teal);
+        display: grid;
+        place-items: center;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .sms-card-icon svg {
+        width: 22px;
+        height: 22px;
+      }
+      .sms-card-head h2 {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--ink);
+        margin-bottom: 2px;
+      }
+      .sms-card-head p {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      /* recipient row */
+      .sms-recipient-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .sms-field {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .sms-field label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted-dk);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+      .sms-field input,
+      .sms-field select {
+        padding: 10px 13px;
+        border: 1.5px solid var(--line);
+        border-radius: var(--r-sm);
+        font-family: inherit;
+        font-size: 14px;
+        background: var(--paper);
+        color: var(--ink);
+        transition: border-color 0.2s;
+        width: 100%;
+      }
+      .sms-field input:focus,
+      .sms-field select:focus {
+        outline: 0;
+        border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.1);
+      }
+
+      /* template pills */
+      .sms-templates {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .sms-tpl {
+        border: 1.5px solid var(--line);
+        background: var(--paper);
+        color: var(--muted-dk);
+        font-size: 12px;
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .sms-tpl:hover {
+        border-color: var(--teal);
+        color: var(--teal);
+      }
+      .sms-tpl.active {
+        background: var(--teal);
+        border-color: var(--teal);
+        color: #fff;
+      }
+
+      /* message box */
+      .sms-message-wrap {
+        position: relative;
+        margin-bottom: 6px;
+      }
+      .sms-message-wrap textarea {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1.5px solid var(--line);
+        border-radius: var(--r-sm);
+        font-family: inherit;
+        font-size: 14px;
+        line-height: 1.6;
+        background: var(--paper);
+        color: var(--ink);
+        resize: vertical;
+        min-height: 130px;
+        transition: border-color 0.2s;
+      }
+      .sms-message-wrap textarea:focus {
+        outline: 0;
+        border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.1);
+      }
+      .sms-char-count {
+        font-size: 11px;
+        color: var(--muted);
+        text-align: right;
+        margin-bottom: 14px;
+      }
+      .sms-char-count span {
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .sms-char-count.warn span {
+        color: var(--alert);
+      }
+
+      /* send button + status */
+      .sms-send-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .sms-send-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        border-radius: 9px;
+        border: 0;
+        background: var(--teal);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .sms-send-btn:hover {
+        background: #1a7a6e;
+      }
+      .sms-send-btn:disabled {
+        background: var(--muted);
+        cursor: not-allowed;
+      }
+      .sms-status {
+        flex: 1;
+        font-size: 13px;
+        padding: 10px 14px;
+        border-radius: var(--r-sm);
+        display: none;
+      }
+      .sms-status.sending {
+        display: block;
+        background: rgba(242, 161, 4, 0.1);
+        border: 1px solid rgba(242, 161, 4, 0.3);
+        color: var(--amber-dk);
+      }
+      .sms-status.success {
+        display: block;
+        background: rgba(42, 157, 143, 0.1);
+        border: 1px solid rgba(42, 157, 143, 0.3);
+        color: var(--teal);
+      }
+      .sms-status.error {
+        display: block;
+        background: rgba(214, 69, 69, 0.1);
+        border: 1px solid rgba(214, 69, 69, 0.3);
+        color: var(--alert);
+      }
+
+      /* shipment picker */
+      .sms-ship-select {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: var(--r-sm);
+        max-height: 220px;
+        overflow-y: auto;
+        margin-bottom: 14px;
+      }
+      .sms-ship-opt {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--line);
+        transition: background 0.15s;
+      }
+      .sms-ship-opt:last-child {
+        border-bottom: none;
+      }
+      .sms-ship-opt:hover {
+        background: rgba(42, 157, 143, 0.05);
+      }
+      .sms-ship-opt.selected {
+        background: rgba(42, 157, 143, 0.1);
+      }
+      .sms-ship-tn {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 2px;
+        font-family: monospace;
+      }
+      .sms-ship-info {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      /* log */
+      .sms-log {
+        margin-top: 20px;
+        border-top: 1px dashed var(--line);
+        padding-top: 16px;
+      }
+      .sms-log-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+      .sms-log-list {
+        display: grid;
+        gap: 8px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .sms-log-item {
+        font-size: 12px;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: start;
+        background: var(--paper);
+        border-radius: var(--r-sm);
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+      }
+      .sms-log-time {
+        color: var(--muted);
+        white-space: nowrap;
+        font-size: 11px;
+      }
+      .sms-log-to {
+        font-weight: 600;
+        color: var(--ink);
+        font-family: monospace;
+      }
+      .sms-log-status {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        padding: 2px 7px;
+        border-radius: 4px;
+        white-space: nowrap;
+      }
+      .sms-log-status.ok {
+        background: rgba(42, 157, 143, 0.15);
+        color: var(--teal);
+      }
+      .sms-log-status.fail {
+        background: rgba(214, 69, 69, 0.15);
+        color: var(--alert);
+      }
+
+      @media (max-width: 600px) {
+        .sms-recipient-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
   </head>
   <body>
+    <!-- ══════════════════ SIDEBAR ══════════════════ -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a class="sidebar-logo" href="index.html" target="_blank">
+          <div class="sidebar-logo-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+              <path
+                d="M3 15h13l4-4v4M3 15v3h18v-3M3 15l2-6h9l3 6"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linejoin="round"
+              />
+              <circle cx="7" cy="19" r="1.4" fill="currentColor" />
+              <circle cx="17" cy="19" r="1.4" fill="currentColor" />
+            </svg>
+          </div>
+          <div class="sidebar-logo-text">
+            Fast <span>Forward</span><br />Logistics
+          </div>
+        </a>
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">A</div>
+          <div class="sidebar-user-info">
+            <p>Admin</p>
+            <span>Administrator</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <button class="nav-item active" data-tab="dashboard">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+            <rect
+              x="3"
+              y="3"
+              width="7"
+              height="7"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.6"
+            />
+            <rect
+              x="14"
+              y="3"
+              width="7"
+              height="7"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.6"
+            />
+            <rect
+              x="3"
+              y="14"
+              width="7"
+              height="7"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.6"
+            />
+            <rect
+              x="14"
+              y="14"
+              width="7"
+              height="7"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.6"
+            />
+          </svg>
+          Dashboard
+        </button>
+        <button class="nav-item" data-tab="addShipment">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+            <path
+              d="M12 5v14M5 12h14"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
+          Create New Shipment
+        </button>
+        <button class="nav-item" data-tab="manageShipments">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+            <path
+              d="M4 13h16l-2 5H6l-2-5Zm2-1V7h5m0 5V4l5 3v5"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+            />
+          </svg>
+          Manage Shipments
+        </button>
+        <button class="nav-item" data-tab="users">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+            <path
+              d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+              stroke="currentColor"
+              stroke-width="1.6"
+            />
+            <circle
+              cx="9"
+              cy="7"
+              r="4"
+              stroke="currentColor"
+              stroke-width="1.6"
+            />
+            <path
+              d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+          </svg>
+          Manage Users
+        </button>
+        <button class="nav-item" data-tab="quickSMS">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+            <path
+              d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Quick SMS
+        </button>
+        <button class="nav-item" data-tab="quotes">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+            <path
+              d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Quotes &amp; Enquiries
+        </button>
+        <div class="nav-section-label">System</div>
+        <button class="nav-item" data-tab="settings">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+            <path
+              d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+              stroke="currentColor"
+              stroke-width="1.6"
+            />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"
+              stroke="currentColor"
+              stroke-width="1.6"
+            />
+          </svg>
+          Settings
+        </button>
+        <a class="nav-item" href="index.html" target="_blank">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+            <path
+              d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+          </svg>
+          View Website ↗
+        </a>
+      </nav>
+
+      <div class="sidebar-footer"><p>© 2026 Fast Forward Logistics</p></div>
+    </aside>
+
+    <!-- ══════════════════ TOPBAR ══════════════════ -->
     <div class="topbar">
-      <div class="topbar-title">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+      <button class="topbar-hamburger" id="hamburger" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
           <path
-            d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2Zm10-10V7a4 4 0 0 0-8 0v4"
+            d="M3 6h18M3 12h18M3 18h18"
             stroke="currentColor"
-            stroke-width="1.6"
+            stroke-width="1.8"
             stroke-linecap="round"
-            stroke-linejoin="round"
           />
         </svg>
-        FFL Admin
-      </div>
-      <nav class="admin-nav">
-        <button data-tab="dashboard" class="active">📦 Dashboard</button>
-        <button data-tab="addShipment">➕ Add Shipment</button>
-        <button data-tab="quotes">💬 Quotes</button>
-        <button data-tab="settings">⚙️ Settings</button>
-      </nav>
-      <span class="topbar-badge">Control Panel</span>
+      </button>
+      <span class="topbar-title" id="topbarTitle">Dashboard</span>
+      <span class="topbar-badge">Admin Panel</span>
     </div>
 
-    <div class="wrap">
-      <!-- ══════════════════════════ DASHBOARD ══════════════════════════ -->
-      <div class="sec active" id="sec-dashboard">
-        <div class="note">
-          <strong>Local data.</strong> Shipments saved in this browser appear
-          immediately on the public tracking page. Events show to customers
-          automatically when their scheduled time is reached.
-        </div>
+    <!-- ══════════════════ MAIN ══════════════════ -->
+    <div class="main">
+      <div class="page-content">
+        <!-- ═══ DASHBOARD ═══ -->
+        <div class="sec active" id="sec-dashboard">
+          <div class="welcome-bar">
+            <h1>Welcome back, Admin! 👋</h1>
+            <p>Here's what's happening with your shipments today.</p>
+          </div>
 
-        <div class="top-row">
-          <div class="stat-card">
-            <span class="stat-num" id="st-total">0</span
-            ><span class="stat-lbl">Total</span>
+          <div class="quick-actions">
+            <button class="qa-btn green" id="qaCreate">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Create New Shipment
+            </button>
+            <button class="qa-btn red" id="qaManage">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                <path
+                  d="M4 13h16l-2 5H6l-2-5Zm2-1V7h5m0 5V4l5 3v5"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linejoin="round"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Manage Shipment
+            </button>
           </div>
-          <div class="stat-card">
-            <span class="stat-num amber" id="st-transit">0</span
-            ><span class="stat-lbl">In Transit</span>
+
+          <!-- stat cards -->
+          <div class="stat-row">
+            <div class="stat-card">
+              <div class="stat-icon teal">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+                  <path
+                    d="m9 11 3 3L22 4"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <div class="stat-body">
+                <span class="stat-num" id="st-total">0</span
+                ><span class="stat-lbl">Total Shipments</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon amber">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+                  <path
+                    d="M4 13h16l-2 5H6l-2-5Zm2-1V7h5m0 5V4l5 3v5"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linejoin="round"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <div class="stat-body">
+                <span class="stat-num" id="st-transit">0</span
+                ><span class="stat-lbl">In Transit</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon green">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+                  <path
+                    d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="m9 22 0-10h6v10"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <div class="stat-body">
+                <span class="stat-num" id="st-done">0</span
+                ><span class="stat-lbl">Delivered</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon alert">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+                  <path
+                    d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                  />
+                  <circle
+                    cx="9"
+                    cy="7"
+                    r="4"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                  />
+                  <path
+                    d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <div class="stat-body">
+                <span class="stat-num" id="st-users">0</span
+                ><span class="stat-lbl">Total Customers</span>
+              </div>
+            </div>
           </div>
-          <div class="stat-card">
-            <span class="stat-num teal" id="st-done">0</span
-            ><span class="stat-lbl">Delivered</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-num alert" id="st-attn">0</span
-            ><span class="stat-lbl">Attention</span>
-          </div>
+
+          <!-- BIG line chart -->
           <div class="chart-card">
             <div class="chart-card-head">
-              <span class="chart-title">📈 Revenue</span>
+              <h2>Shipments Statistics</h2>
+              <span class="chart-year" id="chartYear">2026</span>
               <div class="chart-tabs">
-                <button class="chart-tab active" data-range="day">Day</button>
-                <button class="chart-tab" data-range="week">Week</button>
-                <button class="chart-tab" data-range="month">Month</button>
+                <button class="chart-tab active" data-range="month">
+                  Monthly
+                </button>
+                <button class="chart-tab" data-range="week">Weekly</button>
               </div>
             </div>
-            <div class="chart-body"><canvas id="rateChart"></canvas></div>
+            <div class="chart-wrap"><canvas id="shipChart"></canvas></div>
             <div class="chart-footer">
-              <div>
-                <div class="chart-rate" id="chartRate">$0</div>
-                <div class="chart-sub" id="chartSub">this period</div>
+              <div class="chart-legend">
+                <div class="chart-legend-dot"></div>
+                Shipments Made
               </div>
-              <div class="chart-trend" id="chartTrend">— no data</div>
+            </div>
+          </div>
+
+          <!-- bottom row: mini stats + latest shipments -->
+          <div class="dash-bottom">
+            <div class="mini-stats">
+              <div class="mini-stat">
+                <div class="mini-stat-icon stat-icon teal">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="9"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                    />
+                    <path
+                      d="M12 8v4l3 2"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <div class="mini-stat-num" id="st-attn">0</div>
+                  <div class="mini-stat-lbl">Need Attention</div>
+                </div>
+              </div>
+              <div class="mini-stat">
+                <div class="mini-stat-icon stat-icon amber">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                    <rect
+                      x="3"
+                      y="5"
+                      width="18"
+                      height="14"
+                      rx="2"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                    />
+                    <path
+                      d="m4 7 8 6 8-6"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <div class="mini-stat-num" id="st-quotes">0</div>
+                  <div class="mini-stat-lbl">Quote Requests</div>
+                </div>
+              </div>
+              <div class="mini-stat">
+                <div class="mini-stat-icon stat-icon green">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                    <path
+                      d="M12 5v14M5 12h14"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <div class="mini-stat-num" id="st-booked">0</div>
+                  <div class="mini-stat-lbl">Booked</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- latest shipments list -->
+            <div class="latest-card">
+              <div class="latest-head">
+                <h3>Latest Shipments</h3>
+                <button class="latest-see-all" data-tab="manageShipments">
+                  See all →
+                </button>
+              </div>
+              <div id="latestList"></div>
             </div>
           </div>
         </div>
 
-        <div class="sec-head">
-          <h2>All Shipments</h2>
-          <div class="filters" id="filters">
-            <button class="active" data-f="all">All</button>
-            <button data-f="booked">Booked</button>
-            <button data-f="in_transit">In transit</button>
-            <button data-f="customs">Customs</button>
-            <button data-f="delivered">Delivered</button>
-            <button data-f="delayed">Delayed</button>
-          </div>
-        </div>
-        <div class="ship-list" id="shipList"></div>
-      </div>
-
-      <!-- ══════════════════════════ ADD SHIPMENT ══════════════════════════ -->
-      <div class="sec" id="sec-addShipment">
-        <div class="form-panel">
-          <h2 id="formTitle">Create New Shipment</h2>
-          <p class="sub">
-            Tracking number, container, B/L and flight numbers are
-            auto-generated. Add tracking events with future dates — customers
-            see them automatically as each time is reached.
-          </p>
-          <form id="shipForm" autocomplete="off" onsubmit="return false;">
-            <!-- Auto-generated IDs -->
-            <p class="fsec">Auto-generated references</p>
-            <div class="form-grid cols3">
-              <div class="field">
-                <label
-                  >Tracking number <span class="auto-tag">auto</span></label
-                >
-                <input
-                  type="text"
-                  name="tracking_number"
-                  id="tnField"
-                  readonly
-                  class="auto-gen"
-                  placeholder="FFL-XXX-XXXX"
-                />
+        <!-- ═══ ADD SHIPMENT ═══ -->
+        <div class="sec" id="sec-addShipment">
+          <div class="form-panel">
+            <h2 id="formTitle">Create New Shipment</h2>
+            <p class="sub">
+              Tracking number, container, B/L and flight numbers are
+              auto-generated. Add tracking events with future dates — customers
+              see them automatically as each time is reached.
+            </p>
+            <form id="shipForm" autocomplete="off" onsubmit="return false;">
+              <p class="fsec">Auto-generated references</p>
+              <div class="form-grid cols3">
+                <div class="field">
+                  <label
+                    >Tracking number <span class="auto-tag">auto</span></label
+                  ><input
+                    type="text"
+                    name="tracking_number"
+                    id="tnField"
+                    readonly
+                    class="auto-gen"
+                    placeholder="FFL-XXX-XXXX"
+                  />
+                </div>
+                <div class="field">
+                  <label
+                    >Container / AWB no.
+                    <span class="auto-tag">auto</span></label
+                  ><input
+                    type="text"
+                    name="container_number"
+                    id="containerField"
+                    readonly
+                    class="auto-gen"
+                    placeholder="FFLU·····"
+                  />
+                </div>
+                <div class="field">
+                  <label
+                    >Bill of lading / flight no.
+                    <span class="auto-tag">auto</span></label
+                  ><input
+                    type="text"
+                    name="bill_of_lading"
+                    id="blField"
+                    readonly
+                    class="auto-gen"
+                    placeholder="FFLB·····"
+                  />
+                </div>
               </div>
-              <div class="field">
-                <label
-                  >Container / AWB no. <span class="auto-tag">auto</span></label
-                >
-                <input
-                  type="text"
-                  name="container_number"
-                  id="containerField"
-                  readonly
-                  class="auto-gen"
-                  placeholder="FFLU·····"
-                />
+              <p class="fsec">Shipment details</p>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Mode</label
+                  ><select name="mode" id="modeSelect">
+                    <option value="ocean">Ocean</option>
+                    <option value="air">Air</option>
+                    <option value="road">Road</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Status</label
+                  ><select name="status">
+                    <option value="booked">Booked</option>
+                    <option value="in_transit">In transit</option>
+                    <option value="customs">Customs clearance</option>
+                    <option value="out_for_delivery">Out for delivery</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="delayed">Delayed</option>
+                    <option value="exception">Exception</option>
+                  </select>
+                </div>
+                <div class="field full">
+                  <label>Commodity <span class="req">*</span></label
+                  ><input
+                    type="text"
+                    name="commodity"
+                    placeholder="e.g. Fresh dates, machinery parts, textiles"
+                  />
+                </div>
+                <div class="field">
+                  <label>Weight (kg)</label
+                  ><input
+                    type="number"
+                    name="weight_kg"
+                    step="any"
+                    placeholder="9200"
+                  />
+                </div>
+                <div class="field">
+                  <label>Pieces / packages</label
+                  ><input type="number" name="pieces" placeholder="140" />
+                </div>
+                <div class="field">
+                  <label>Vessel / flight name</label
+                  ><input
+                    type="text"
+                    name="vessel_name"
+                    placeholder="MV Northern Vigour"
+                  />
+                </div>
+                <div class="field">
+                  <label>Voyage no.</label
+                  ><input
+                    type="text"
+                    name="voyage_number"
+                    placeholder="V.001W"
+                  />
+                </div>
               </div>
-              <div class="field">
-                <label
-                  >Bill of lading / flight no.
-                  <span class="auto-tag">auto</span></label
-                >
-                <input
-                  type="text"
-                  name="bill_of_lading"
-                  id="blField"
-                  readonly
-                  class="auto-gen"
-                  placeholder="FFLB·····"
-                />
+              <p class="fsec">Sender (shipper)</p>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Contact name <span class="req">*</span></label
+                  ><input
+                    type="text"
+                    name="shipper_contact"
+                    placeholder="Full name"
+                  />
+                </div>
+                <div class="field">
+                  <label>Phone</label
+                  ><input
+                    type="tel"
+                    name="shipper_phone"
+                    placeholder="+964 …"
+                  />
+                </div>
+                <div class="field">
+                  <label>Email</label
+                  ><input
+                    type="email"
+                    name="shipper_email"
+                    placeholder="sender@company.com"
+                  />
+                </div>
+                <div class="field full">
+                  <label>Address / origin <span class="req">*</span></label
+                  ><input
+                    type="text"
+                    name="origin_port"
+                    placeholder="e.g. Umm Qasr, IQ (IQUQR)"
+                  />
+                </div>
+                <div class="field">
+                  <label>Departed (ETD)</label
+                  ><input type="datetime-local" name="etd" />
+                </div>
               </div>
-            </div>
-
-            <!-- Shipment details -->
-            <p class="fsec">Shipment details</p>
-            <div class="form-grid">
-              <div class="field">
-                <label>Mode</label>
-                <select name="mode" id="modeSelect">
-                  <option value="ocean">Ocean</option>
-                  <option value="air">Air</option>
-                  <option value="road">Road</option>
-                </select>
+              <p class="fsec">Receiver (consignee)</p>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Contact name <span class="req">*</span></label
+                  ><input
+                    type="text"
+                    name="consignee_contact"
+                    placeholder="Full name"
+                  />
+                </div>
+                <div class="field">
+                  <label>Phone</label
+                  ><input
+                    type="tel"
+                    name="consignee_phone"
+                    placeholder="+1 …"
+                  />
+                </div>
+                <div class="field">
+                  <label>Email</label
+                  ><input
+                    type="email"
+                    name="consignee_email"
+                    placeholder="receiver@company.com"
+                  />
+                </div>
+                <div class="field full">
+                  <label>Address / destination <span class="req">*</span></label
+                  ><input
+                    type="text"
+                    name="destination_port"
+                    placeholder="e.g. New York, US (USNYC)"
+                  />
+                </div>
+                <div class="field">
+                  <label>Expected arrival (ETA)</label
+                  ><input type="datetime-local" name="eta" />
+                </div>
               </div>
-              <div class="field">
-                <label>Status</label>
-                <select name="status">
-                  <option value="booked">Booked</option>
-                  <option value="in_transit">In transit</option>
-                  <option value="customs">Customs clearance</option>
-                  <option value="out_for_delivery">Out for delivery</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="delayed">Delayed</option>
-                  <option value="exception">Exception</option>
-                </select>
+              <p class="fsec">Charges</p>
+              <div class="charge-row">
+                <div class="field">
+                  <label>Shipment charge (USD)</label
+                  ><input
+                    type="number"
+                    name="charge_shipment"
+                    id="chargeShip"
+                    step="0.01"
+                    min="0"
+                    placeholder="e.g. 2400.00"
+                  />
+                </div>
+                <div class="field">
+                  <label>Handling charge (USD)</label
+                  ><input
+                    type="number"
+                    name="charge_handling"
+                    id="chargeHandle"
+                    step="0.01"
+                    min="0"
+                    placeholder="e.g. 350.00"
+                  />
+                </div>
+                <div class="field">
+                  <label>Total charge (auto)</label
+                  ><input
+                    type="text"
+                    name="charge_total"
+                    id="chargeTotal"
+                    readonly
+                    class="charge-total"
+                    placeholder="$0.00"
+                  />
+                </div>
               </div>
-              <div class="field full">
-                <label>Commodity <span class="req">*</span></label>
-                <input
-                  type="text"
-                  name="commodity"
-                  placeholder="e.g. Fresh dates, machinery parts, textiles"
-                />
-              </div>
-              <div class="field">
-                <label>Weight (kg)</label
-                ><input
-                  type="number"
-                  name="weight_kg"
-                  step="any"
-                  placeholder="9200"
-                />
-              </div>
-              <div class="field">
-                <label>Pieces / packages</label
-                ><input type="number" name="pieces" placeholder="140" />
-              </div>
-              <div class="field">
-                <label>Vessel / flight name</label
-                ><input
-                  type="text"
-                  name="vessel_name"
-                  placeholder="MV Northern Vigour"
-                />
-              </div>
-              <div class="field">
-                <label>Voyage no.</label
-                ><input type="text" name="voyage_number" placeholder="V.001W" />
-              </div>
-            </div>
-
-            <!-- Sender -->
-            <p class="fsec">Sender (shipper)</p>
-            <div class="form-grid">
-              <div class="field">
-                <label>Contact name <span class="req">*</span></label
-                ><input
-                  type="text"
-                  name="shipper_contact"
-                  placeholder="Full name"
-                />
-              </div>
-              <div class="field">
-                <label>Phone</label
-                ><input type="tel" name="shipper_phone" placeholder="+964 …" />
-              </div>
-              <div class="field">
-                <label>Email</label
-                ><input
-                  type="email"
-                  name="shipper_email"
-                  placeholder="sender@company.com"
-                />
-              </div>
-              <div class="field full">
-                <label>Address / origin <span class="req">*</span></label
-                ><input
-                  type="text"
-                  name="origin_port"
-                  placeholder="e.g. Umm Qasr, IQ (IQUQR)"
-                />
-              </div>
-              <div class="field">
-                <label>Departed (ETD)</label
-                ><input type="datetime-local" name="etd" />
-              </div>
-            </div>
-
-            <!-- Receiver -->
-            <p class="fsec">Receiver (consignee)</p>
-            <div class="form-grid">
-              <div class="field">
-                <label>Contact name <span class="req">*</span></label
-                ><input
-                  type="text"
-                  name="consignee_contact"
-                  placeholder="Full name"
-                />
-              </div>
-              <div class="field">
-                <label>Phone</label
-                ><input type="tel" name="consignee_phone" placeholder="+1 …" />
-              </div>
-              <div class="field">
-                <label>Email</label
-                ><input
-                  type="email"
-                  name="consignee_email"
-                  placeholder="receiver@company.com"
-                />
-              </div>
-              <div class="field full">
-                <label>Address / destination <span class="req">*</span></label
-                ><input
-                  type="text"
-                  name="destination_port"
-                  placeholder="e.g. New York, US (USNYC)"
-                />
-              </div>
-              <div class="field">
-                <label>Expected arrival (ETA)</label
-                ><input type="datetime-local" name="eta" />
-              </div>
-            </div>
-
-            <!-- Charges -->
-            <p class="fsec">Charges</p>
-            <div class="charge-row">
-              <div class="field">
-                <label>Shipment charge (USD)</label>
-                <input
-                  type="number"
-                  name="charge_shipment"
-                  id="chargeShip"
-                  step="0.01"
-                  min="0"
-                  placeholder="e.g. 2400.00"
-                />
-              </div>
-              <div class="field">
-                <label>Handling charge (USD)</label>
-                <input
-                  type="number"
-                  name="charge_handling"
-                  id="chargeHandle"
-                  step="0.01"
-                  min="0"
-                  placeholder="e.g. 350.00"
-                />
-              </div>
-              <div class="field">
-                <label>Total charge (auto)</label>
-                <input
-                  type="text"
-                  name="charge_total"
-                  id="chargeTotal"
-                  readonly
-                  class="charge-total"
-                  placeholder="$0.00"
-                />
-              </div>
-            </div>
-
-            <!-- Tracking events -->
-            <div class="ev-head">
-              <h3>
-                Tracking events
-                <span
+              <div class="ev-head">
+                <h3>
+                  Tracking events
+                  <span
+                    style="
+                      font-size: 11px;
+                      font-weight: 400;
+                      color: var(--muted);
+                      text-transform: none;
+                      letter-spacing: 0;
+                    "
+                    >— set date &amp; time for each milestone</span
+                  >
+                </h3>
+                <button
+                  type="button"
+                  id="addEventBtn"
                   style="
-                    font-size: 11px;
-                    font-weight: 400;
-                    color: var(--muted);
-                    text-transform: none;
-                    letter-spacing: 0;
+                    padding: 5px 14px;
+                    border-radius: 7px;
+                    border: 1.5px solid var(--line);
+                    background: transparent;
+                    color: var(--muted-dk);
+                    font-size: 12px;
+                    font-weight: 600;
+                    cursor: pointer;
                   "
-                  >— set date &amp; time for each milestone</span
                 >
-              </h3>
+                  + Add event
+                </button>
+              </div>
+              <div class="ev-rows" id="eventRows"></div>
+              <p class="ev-hint">
+                ⏰ Events with a <strong>past</strong> date/time are visible to
+                the customer immediately. Future events appear automatically
+                when that time is reached.
+              </p>
+              <div class="form-actions">
+                <button type="button" class="save" id="saveBtn">
+                  Save shipment
+                </button>
+                <button type="button" class="ghost" id="sampleBtn">
+                  Load sample
+                </button>
+                <button type="button" class="ghost" id="clearFormBtn">
+                  Clear form
+                </button>
+                <button
+                  type="button"
+                  class="cancel"
+                  id="cancelEditBtn"
+                  style="display: none"
+                >
+                  ✕ Cancel edit
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- ═══ MANAGE SHIPMENTS ═══ -->
+        <div class="sec" id="sec-manageShipments">
+          <div class="sec-head">
+            <h2>All Shipments</h2>
+            <div class="filters" id="filters">
+              <button class="active" data-f="all">All</button>
+              <button data-f="booked">Booked</button>
+              <button data-f="in_transit">In transit</button>
+              <button data-f="customs">Customs</button>
+              <button data-f="delivered">Delivered</button>
+              <button data-f="delayed">Delayed</button>
+            </div>
+          </div>
+          <div class="note">
+            <strong>Local data.</strong> Shipments saved here appear immediately
+            on the public tracking page.
+          </div>
+          <div class="ship-list" id="shipList"></div>
+        </div>
+
+        <!-- ═══ MANAGE USERS ═══ -->
+        <div class="sec" id="sec-users">
+          <div class="sec-head">
+            <h2>Manage Users</h2>
+            <button
+              class="qa-btn green"
+              style="padding: 9px 18px; font-size: 13px"
+              id="addUserBtn"
+            >
+              + Add user
+            </button>
+          </div>
+          <div class="note">
+            Users are customers extracted from quote requests and shipment
+            consignee records stored in this browser.
+          </div>
+          <div class="users-grid" id="usersList"></div>
+        </div>
+
+        <!-- ═══ QUOTES ═══ -->
+        <div class="sec" id="sec-quotes">
+          <div class="sec-head">
+            <h2>Quote &amp; Contact Requests</h2>
+            <button
+              id="clearQuotesBtn"
+              class="btn danger"
+              style="width: auto; padding: 7px 14px"
+            >
+              Clear all
+            </button>
+          </div>
+          <div id="quoteList"></div>
+        </div>
+
+        <!-- ═══ SETTINGS ═══ -->
+        <div class="sec" id="sec-settings">
+          <div class="settings-panel">
+            <h2>Notification Settings</h2>
+            <p class="panel-sub">
+              Configure EmailJS and ClickSend so the admin can send booking
+              confirmations directly to customers' email and phone.
+            </p>
+            <!-- EmailJS -->
+            <div class="settings-section">
+              <div class="settings-section-head">
+                <span class="settings-badge email">📧 Email via EmailJS</span>
+                <a
+                  href="https://www.emailjs.com"
+                  target="_blank"
+                  class="settings-link"
+                  >Get free account →</a
+                >
+              </div>
+              <p class="settings-desc">
+                EmailJS lets you send emails directly from the browser. Free
+                tier: 200 emails/month.
+              </p>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Public Key</label
+                  ><input
+                    type="text"
+                    id="ejsPublicKey"
+                    placeholder="Your EmailJS public key"
+                  />
+                </div>
+                <div class="field">
+                  <label>Service ID</label
+                  ><input
+                    type="text"
+                    id="ejsServiceId"
+                    placeholder="service_xxxxxxx"
+                  />
+                </div>
+                <div class="field">
+                  <label>Template ID</label
+                  ><input
+                    type="text"
+                    id="ejsTemplateId"
+                    placeholder="template_xxxxxxx"
+                  />
+                </div>
+              </div>
+            </div>
+            <!-- Textbelt SMS -->
+            <div class="settings-section">
+              <div class="settings-section-head">
+                <span class="settings-badge sms">📱 SMS via Textbelt</span>
+                <a
+                  href="https://textbelt.com"
+                  target="_blank"
+                  class="settings-link"
+                  >textbelt.com →</a
+                >
+              </div>
+              <p class="settings-desc">
+                Textbelt sends SMS to 221 countries with no registration or
+                approval needed. Just one API key. Pay as you go — about $0.09
+                per message.
+              </p>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Textbelt API Key</label>
+                  <input
+                    type="password"
+                    id="tbApiKey"
+                    placeholder="Your Textbelt API key"
+                  />
+                </div>
+              </div>
+              <div class="settings-guide">
+                <p>Setup (2 minutes):</p>
+                <ol>
+                  <li>
+                    Go to
+                    <a href="https://textbelt.com" target="_blank"
+                      >textbelt.com</a
+                    >
+                    → click <strong>Create an API key</strong>
+                  </li>
+                  <li>
+                    Enter your email and buy credits (start with $10 = ~110
+                    messages)
+                  </li>
+                  <li>
+                    Copy your API key and paste it above → click
+                    <strong>Save settings</strong>
+                  </li>
+                  <li>Click <strong>Test SMS</strong> to verify it works</li>
+                </ol>
+              </div>
+            </div>
+            <!-- Company info -->
+            <div class="settings-section">
+              <div class="settings-section-head">
+                <span class="settings-badge company">🏢 Company info</span>
+              </div>
+              <p class="settings-desc">
+                Used in all customer notifications and invoices.
+              </p>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Company name</label
+                  ><input
+                    type="text"
+                    id="cfgCompanyName"
+                    placeholder="Fast Forward Logistics"
+                  />
+                </div>
+                <div class="field">
+                  <label>Support phone</label
+                  ><input
+                    type="text"
+                    id="cfgSupportPhone"
+                    placeholder="+964 780 000 0000"
+                  />
+                </div>
+                <div class="field">
+                  <label>Support email</label
+                  ><input
+                    type="email"
+                    id="cfgSupportEmail"
+                    placeholder="hello@fastforward.iq"
+                  />
+                </div>
+                <div class="field">
+                  <label>Tracking URL base</label
+                  ><input
+                    type="url"
+                    id="cfgTrackingUrl"
+                    placeholder="http://localhost:5500/tracking.html"
+                  />
+                </div>
+              </div>
+            </div>
+            <div
+              style="
+                margin-top: 24px;
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+              "
+            >
               <button
-                type="button"
-                id="addEventBtn"
+                class="form-actions save"
+                id="saveSettings"
                 style="
-                  padding: 5px 14px;
-                  border-radius: 7px;
+                  padding: 11px 26px;
+                  border-radius: 8px;
+                  border: 0;
+                  font-size: 13px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  cursor: pointer;
+                  background: var(--amber);
+                  color: var(--ink);
+                "
+              >
+                Save settings
+              </button>
+              <button
+                class="form-actions ghost"
+                id="testEmail"
+                style="
+                  padding: 11px 20px;
+                  border-radius: 8px;
                   border: 1.5px solid var(--line);
                   background: transparent;
                   color: var(--muted-dk);
-                  font-size: 12px;
-                  font-weight: 600;
+                  font-size: 13px;
+                  font-weight: 700;
+                  text-transform: uppercase;
                   cursor: pointer;
                 "
               >
-                + Add event
-              </button>
-            </div>
-            <div class="ev-rows" id="eventRows"></div>
-            <p class="ev-hint">
-              ⏰ Events with a <strong>past</strong> date/time are visible to
-              the customer immediately. Events with a
-              <strong>future</strong> date/time will appear automatically when
-              that time is reached — no action needed.
-            </p>
-
-            <div class="form-actions">
-              <button type="button" class="save" id="saveBtn">
-                Save shipment
-              </button>
-              <button type="button" class="ghost" id="sampleBtn">
-                Load sample
-              </button>
-              <button type="button" class="ghost" id="clearFormBtn">
-                Clear form
+                Test email
               </button>
               <button
-                type="button"
-                class="cancel"
-                id="cancelEditBtn"
-                style="display: none"
+                class="form-actions ghost"
+                id="testSMS"
+                style="
+                  padding: 11px 20px;
+                  border-radius: 8px;
+                  border: 1.5px solid var(--line);
+                  background: transparent;
+                  color: var(--muted-dk);
+                  font-size: 13px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  cursor: pointer;
+                "
               >
-                ✕ Cancel edit
+                Test SMS
               </button>
             </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- ══════════════════════════ QUOTES ══════════════════════════ -->
-      <div class="sec" id="sec-quotes">
-        <div class="sec-head">
-          <h2>Quote &amp; Contact Requests</h2>
-          <button
-            id="clearQuotesBtn"
-            class="btn danger"
-            style="width: auto; padding: 7px 14px"
-          >
-            Clear all
-          </button>
-        </div>
-        <div id="quoteList"></div>
-      </div>
-
-      <!-- ══════════════════════════ SETTINGS ══════════════════════════ -->
-      <div class="sec" id="sec-settings">
-        <div class="settings-panel">
-          <h2>Notification Settings</h2>
-          <p class="panel-sub">
-            Configure EmailJS and Twilio so the admin can send booking
-            confirmations directly to customers' email and phone. Both services
-            have free tiers — see setup guide below.
-          </p>
-
-          <!-- EmailJS -->
-          <div class="settings-section">
-            <div class="settings-section-head">
-              <span class="settings-badge email">📧 Email via EmailJS</span>
-              <a
-                href="https://www.emailjs.com"
-                target="_blank"
-                class="settings-link"
-                >Get free account →</a
-              >
-            </div>
-            <p class="settings-desc">
-              EmailJS lets you send emails directly from the browser with no
-              backend. Free tier: 200 emails/month.
-            </p>
-            <div class="form-grid">
-              <div class="field">
-                <label>Public Key</label>
-                <input
-                  type="text"
-                  id="ejsPublicKey"
-                  placeholder="e.g. user_xxxxxxxxxxxxxxxx"
-                />
-              </div>
-              <div class="field">
-                <label>Service ID</label>
-                <input
-                  type="text"
-                  id="ejsServiceId"
-                  placeholder="e.g. service_xxxxxxx"
-                />
-              </div>
-              <div class="field full">
-                <label>Template ID</label>
-                <input
-                  type="text"
-                  id="ejsTemplateId"
-                  placeholder="e.g. template_xxxxxxx"
-                />
-              </div>
-            </div>
-            <div class="settings-guide">
-              <p><strong>Setup (5 minutes):</strong></p>
-              <ol>
-                <li>
-                  Sign up at
-                  <a href="https://www.emailjs.com" target="_blank"
-                    >emailjs.com</a
-                  >
-                  → free account
-                </li>
-                <li>
-                  Add an email service (Gmail, Outlook, etc.) → copy the
-                  <strong>Service ID</strong>
-                </li>
-                <li>
-                  Create an email template. Use these variables in your
-                  template:<br />
-                  <code>{{to_name}}</code> · <code>{{tracking_number}}</code> ·
-                  <code>{{commodity}}</code> · <code>{{eta}}</code> ·
-                  <code>{{origin}}</code> · <code>{{destination}}</code> ·
-                  <code>{{message}}</code>
-                </li>
-                <li>
-                  Copy the <strong>Template ID</strong> and your account's
-                  <strong>Public Key</strong>
-                </li>
-                <li>Paste all three above and click Save</li>
-              </ol>
-            </div>
+            <div
+              id="settingsMsg"
+              style="margin-top: 14px; font-size: 13px; display: none"
+            ></div>
           </div>
+        </div>
 
-          <!-- ClickSend SMS -->
-          <div class="settings-section">
-            <div class="settings-section-head">
-              <span class="settings-badge sms">📱 SMS via ClickSend</span>
-              <a
-                href="https://dashboard.clicksend.com/signup"
-                target="_blank"
-                class="settings-link"
-                >Create free account →</a
-              >
-            </div>
-            <p class="settings-desc">
-              ClickSend sends SMS to any phone number worldwide including Iraq,
-              USA and Europe. You get
-              <strong>$2 AUD free credit on signup</strong> (≈10–15 messages to
-              test). Accepts Bitcoin and credit card for top-ups. No proxy or
-              server needed — connects directly.
-            </p>
-            <div class="form-grid">
-              <div class="field">
-                <label>ClickSend Username</label>
-                <input
-                  type="text"
-                  id="csUsername"
-                  placeholder="Your ClickSend account email or username"
-                />
+        <!-- ═══ QUICK SMS ═══ -->
+        <div class="sec" id="sec-quickSMS">
+          <div class="sms-panel">
+            <!-- HEADER CARD -->
+            <div class="sms-card">
+              <div class="sms-card-head">
+                <div class="sms-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h2>Quick SMS</h2>
+                  <p>
+                    Send a delivery update directly to any customer's phone via
+                    ClickSend
+                  </p>
+                </div>
               </div>
-              <div class="field">
-                <label>API Key</label>
-                <input
-                  type="password"
-                  id="csApiKey"
-                  placeholder="Your ClickSend API key"
-                />
-              </div>
-              <div class="field">
-                <label
-                  >Sender name / number
-                  <span style="color: var(--muted); font-weight: 400"
-                    >(optional)</span
-                  ></label
+
+              <!-- Step 1: Pick a shipment OR enter manually -->
+              <div style="margin-bottom: 18px">
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 10px;
+                  "
                 >
-                <input
-                  type="text"
-                  id="csFrom"
-                  placeholder="e.g. FastForward or +964780000000"
-                />
-              </div>
-            </div>
-            <div class="settings-guide">
-              <p><strong>Setup (3 minutes):</strong></p>
-              <ol>
-                <li>
-                  Go to
-                  <a
-                    href="https://dashboard.clicksend.com/signup"
-                    target="_blank"
-                    >dashboard.clicksend.com/signup</a
+                  <p
+                    style="
+                      font-size: 13px;
+                      font-weight: 700;
+                      color: var(--ink2);
+                    "
                   >
-                  and create a free account
-                </li>
-                <li>
-                  Log in → click your name top-right →
-                  <strong>Account Settings</strong> →
-                  <strong>API Credentials</strong>
-                </li>
-                <li>
-                  Copy your <strong>Username</strong> and
-                  <strong>API Key</strong> and paste them above
-                </li>
-                <li>
-                  Optionally set a <strong>Sender name</strong> (up to 11
-                  characters, shown instead of a number) — leave blank to use
-                  ClickSend default
-                </li>
-                <li>
-                  Click <strong>Save settings</strong> then
-                  <strong>Test SMS</strong> to verify it works
-                </li>
-                <li>
-                  To top up with Bitcoin: Dashboard → Billing → Top Up → choose
-                  BTC
-                </li>
-              </ol>
-            </div>
-          </div>
+                    Step 1 — Pick a shipment to auto-fill details
+                  </p>
+                  <button
+                    id="smsClearPick"
+                    style="
+                      font-size: 11px;
+                      color: var(--muted);
+                      background: none;
+                      border: 0;
+                      cursor: pointer;
+                      text-decoration: underline;
+                    "
+                  >
+                    Clear selection
+                  </button>
+                </div>
+                <div class="sms-ship-select" id="smsShipList">
+                  <div
+                    style="
+                      padding: 16px;
+                      text-align: center;
+                      color: var(--muted);
+                      font-size: 13px;
+                    "
+                  >
+                    No shipments yet — enter details manually below
+                  </div>
+                </div>
+              </div>
 
-          <!-- Company info used in messages -->
-          <div class="settings-section">
-            <div class="settings-section-head">
-              <span class="settings-badge company">🏢 Company info</span>
-            </div>
-            <p class="settings-desc">
-              Used inside notification messages sent to customers.
-            </p>
-            <div class="form-grid">
-              <div class="field">
-                <label>Company name</label>
-                <input
-                  type="text"
-                  id="cfgCompanyName"
-                  placeholder="Fast Forward Logistics"
-                />
+              <!-- Step 2: Recipient -->
+              <p
+                style="
+                  font-size: 13px;
+                  font-weight: 700;
+                  color: var(--ink2);
+                  margin-bottom: 10px;
+                "
+              >
+                Step 2 — Confirm recipient
+              </p>
+              <div class="sms-recipient-row">
+                <div class="sms-field">
+                  <label>Recipient name</label>
+                  <input
+                    type="text"
+                    id="smsRecipientName"
+                    placeholder="e.g. Sarah Johnson"
+                  />
+                </div>
+                <div class="sms-field">
+                  <label>Phone number (with country code) *</label>
+                  <input
+                    type="tel"
+                    id="smsPhone"
+                    placeholder="+1 718 555 0199"
+                  />
+                </div>
               </div>
-              <div class="field">
-                <label>Support phone</label>
-                <input
-                  type="text"
-                  id="cfgSupportPhone"
-                  placeholder="+964 780 000 0000"
-                />
-              </div>
-              <div class="field full">
-                <label>Support email</label>
-                <input
-                  type="text"
-                  id="cfgSupportEmail"
-                  placeholder="hello@fastforward.iq"
-                />
-              </div>
-              <div class="field full">
-                <label>Tracking URL base</label>
-                <input
-                  type="text"
-                  id="cfgTrackingUrl"
-                  placeholder="https://yoursite.com/tracking.html"
-                />
-              </div>
-            </div>
-          </div>
 
-          <div
-            style="margin-top: 24px; display: flex; gap: 10px; flex-wrap: wrap"
-          >
-            <button
-              class="form-actions save"
-              id="saveSettings"
-              style="
-                padding: 11px 26px;
-                border-radius: 8px;
-                border: 0;
-                font-size: 13px;
-                font-weight: 700;
-                text-transform: uppercase;
-                cursor: pointer;
-                background: var(--amber);
-                color: var(--ink);
-              "
-            >
-              Save settings
-            </button>
-            <button
-              class="form-actions ghost"
-              id="testEmail"
-              style="
-                padding: 11px 20px;
-                border-radius: 8px;
-                border: 1.5px solid var(--line);
-                background: transparent;
-                color: var(--muted-dk);
-                font-size: 13px;
-                font-weight: 700;
-                text-transform: uppercase;
-                cursor: pointer;
-              "
-            >
-              Test email
-            </button>
-            <button
-              class="form-actions ghost"
-              id="testSMS"
-              style="
-                padding: 11px 20px;
-                border-radius: 8px;
-                border: 1.5px solid var(--line);
-                background: transparent;
-                color: var(--muted-dk);
-                font-size: 13px;
-                font-weight: 700;
-                text-transform: uppercase;
-                cursor: pointer;
-              "
-            >
-              Test SMS
-            </button>
+              <!-- Step 3: Message templates -->
+              <p
+                style="
+                  font-size: 13px;
+                  font-weight: 700;
+                  color: var(--ink2);
+                  margin-bottom: 10px;
+                "
+              >
+                Step 3 — Choose a template or write your own
+              </p>
+              <div class="sms-templates" id="smsTemplates">
+                <button class="sms-tpl active" data-tpl="booking">
+                  📦 Booking confirmed
+                </button>
+                <button class="sms-tpl" data-tpl="departed">
+                  🚢 Departed port
+                </button>
+                <button class="sms-tpl" data-tpl="intransit">
+                  🌊 In transit update
+                </button>
+                <button class="sms-tpl" data-tpl="customs">
+                  🛃 Customs clearance
+                </button>
+                <button class="sms-tpl" data-tpl="arriving">
+                  📍 Arriving soon
+                </button>
+                <button class="sms-tpl" data-tpl="delivered">
+                  ✅ Delivered
+                </button>
+                <button class="sms-tpl" data-tpl="custom">
+                  ✏️ Custom message
+                </button>
+              </div>
+
+              <!-- Step 4: Message -->
+              <p
+                style="
+                  font-size: 13px;
+                  font-weight: 700;
+                  color: var(--ink2);
+                  margin-bottom: 8px;
+                "
+              >
+                Step 4 — Review &amp; edit your message
+              </p>
+              <div class="sms-message-wrap">
+                <textarea
+                  id="smsBody"
+                  placeholder="Your message will appear here once you pick a template above…"
+                ></textarea>
+              </div>
+              <div class="sms-char-count" id="smsCharCount">
+                <span>0</span> / 160 characters (1 SMS)
+              </div>
+
+              <!-- Send -->
+              <div class="sms-send-row">
+                <button class="sms-send-btn" id="smsSendBtn">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                    <path
+                      d="M22 2 11 13M22 2 15 22l-4-9-9-4 20-7z"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  Send SMS now
+                </button>
+                <div class="sms-status" id="smsStatus"></div>
+              </div>
+            </div>
+
+            <!-- SMS LOG -->
+            <div class="sms-card">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 4px;
+                "
+              >
+                <h3 style="font-size: 16px; font-weight: 700">
+                  Sent messages log
+                </h3>
+                <button
+                  id="smsClearLog"
+                  style="
+                    font-size: 12px;
+                    color: var(--alert);
+                    background: none;
+                    border: 0;
+                    cursor: pointer;
+                  "
+                >
+                  Clear log
+                </button>
+              </div>
+              <p
+                style="
+                  font-size: 13px;
+                  color: var(--muted);
+                  margin-bottom: 14px;
+                "
+              >
+                Every SMS you send from this panel is recorded here.
+              </p>
+              <div class="sms-log-list" id="smsLogList">
+                <div
+                  style="
+                    color: var(--muted);
+                    font-size: 13px;
+                    text-align: center;
+                    padding: 16px;
+                  "
+                >
+                  No messages sent yet.
+                </div>
+              </div>
+            </div>
           </div>
-          <div
-            id="settingsMsg"
-            style="margin-top: 14px; font-size: 13px; display: none"
-          ></div>
         </div>
       </div>
+      <!-- /page-content -->
     </div>
+    <!-- /main -->
 
     <!-- UPDATE MODAL -->
     <div class="modal-backdrop" id="updateModal">
@@ -677,22 +3301,22 @@
         <div class="modal-head">
           <h3>Post update</h3>
           <div style="display: flex; align-items: center; gap: 10px">
-            <span class="modal-tn" id="modalTN">—</span>
-            <button class="modal-close" id="modalClose">✕</button>
+            <span class="modal-tn" id="modalTN">—</span
+            ><button class="modal-close" id="modalClose">✕</button>
           </div>
         </div>
         <div class="modal-fields">
           <div class="mfield">
-            <label>Current location / address</label>
-            <input
+            <label>Current location / address</label
+            ><input
               type="text"
               id="updLocation"
               placeholder="e.g. Port Said, EG — awaiting berth"
             />
           </div>
           <div class="mfield">
-            <label>New status (optional)</label>
-            <select id="updStatus">
+            <label>New status (optional)</label
+            ><select id="updStatus">
               <option value="">— keep current —</option>
               <option value="booked">Booked</option>
               <option value="in_transit">In transit</option>
@@ -706,39 +3330,36 @@
           <div class="mfield">
             <label
               >Update message <span style="color: var(--alert)">*</span></label
-            >
-            <textarea
+            ><textarea
               id="updNote"
-              placeholder="Describe what happened — e.g. vessel delayed at Suez, new ETA is …"
+              placeholder="Describe what happened…"
             ></textarea>
           </div>
         </div>
         <div class="modal-actions">
-          <button class="modal-save" id="modalSave">Post update</button>
-          <button class="modal-cancel" id="modalCancel">Cancel</button>
+          <button class="modal-save" id="modalSave">Post update</button
+          ><button class="modal-cancel" id="modalCancel">Cancel</button>
         </div>
         <div class="update-log" id="updateLog" style="display: none">
-          <p class="update-log-title">Recent events on this shipment</p>
+          <p class="update-log-title">Recent events</p>
           <div class="update-log-list" id="updateLogList"></div>
         </div>
       </div>
     </div>
 
-    <!-- INVOICE PRINT SHEET (hidden, shown only on print) -->
-    <div class="invoice-sheet" id="invoiceSheet"></div>
+    <!-- INVOICE PRINT SHEET -->
+    <div style="display: none" id="invoiceSheet"></div>
 
-    <!-- NOTIFICATION PREVIEW MODAL -->
+    <!-- NOTIFICATION MODAL -->
     <div class="modal-backdrop" id="notifModal" style="z-index: 310">
       <div class="modal" style="max-width: 620px">
         <div class="modal-head">
           <h3>📨 Send Notification</h3>
           <div style="display: flex; align-items: center; gap: 10px">
-            <span class="modal-tn" id="notifModalTN">—</span>
-            <button class="modal-close" id="notifModalClose">✕</button>
+            <span class="modal-tn" id="notifModalTN">—</span
+            ><button class="modal-close" id="notifModalClose">✕</button>
           </div>
         </div>
-
-        <!-- recipient info -->
         <div
           style="
             background: rgba(42, 157, 143, 0.06);
@@ -751,28 +3372,26 @@
           "
         >
           <div style="display: flex; gap: 10px; font-size: 13px">
-            <span style="color: var(--muted); min-width: 90px">Receiver</span>
-            <strong id="notifRecvName">—</strong>
+            <span style="color: var(--muted); min-width: 90px">Receiver</span
+            ><strong id="notifRecvName">—</strong>
           </div>
           <div style="display: flex; gap: 10px; font-size: 13px">
-            <span style="color: var(--muted); min-width: 90px">Email</span>
-            <span
+            <span style="color: var(--muted); min-width: 90px">Email</span
+            ><span
               id="notifEmail"
               style="font-family: monospace; color: var(--ink2)"
               >—</span
             >
           </div>
           <div style="display: flex; gap: 10px; font-size: 13px">
-            <span style="color: var(--muted); min-width: 90px">Phone</span>
-            <span
+            <span style="color: var(--muted); min-width: 90px">Phone</span
+            ><span
               id="notifPhone"
               style="font-family: monospace; color: var(--ink2)"
               >—</span
             >
           </div>
         </div>
-
-        <!-- channel toggles -->
         <div style="display: flex; gap: 10px; margin-bottom: 16px">
           <label
             style="
@@ -783,15 +3402,14 @@
               font-size: 14px;
               font-weight: 600;
             "
-          >
-            <input
+            ><input
               type="checkbox"
               id="sendEmail"
               checked
-              style="width: 16px; height: 16px; accent-color: var(--teal)"
+              style="width: 16px; height: 16px; accent-color: var(--teal-lt)"
             />
-            📧 Email
-          </label>
+            📧 Email</label
+          >
           <label
             style="
               display: flex;
@@ -801,27 +3419,22 @@
               font-size: 14px;
               font-weight: 600;
             "
-          >
-            <input
+            ><input
               type="checkbox"
               id="sendSMS"
               checked
               style="width: 16px; height: 16px; accent-color: var(--amber)"
             />
-            📱 SMS
-          </label>
+            📱 SMS</label
+          >
         </div>
-
-        <!-- message preview -->
         <div class="mfield" style="margin-bottom: 14px">
-          <label>Message to customer</label>
-          <textarea
+          <label>Message to customer</label
+          ><textarea
             id="notifMessage"
             style="min-height: 140px; font-size: 13px; line-height: 1.6"
           ></textarea>
         </div>
-
-        <!-- status area -->
         <div
           id="notifStatus"
           style="
@@ -832,16 +3445,14 @@
             margin-bottom: 14px;
           "
         ></div>
-
         <div class="modal-actions">
           <button
             class="modal-save"
             id="notifSend"
-            style="background: var(--teal)"
+            style="background: var(--teal-lt)"
           >
-            Send now
-          </button>
-          <button class="modal-cancel" id="notifCancel">Cancel</button>
+            Send now</button
+          ><button class="modal-cancel" id="notifCancel">Cancel</button>
         </div>
       </div>
     </div>
@@ -852,31 +3463,18 @@
         <div class="flags-modal-head">
           <h3>🚨 Alert Flags</h3>
           <div style="display: flex; align-items: center; gap: 10px">
-            <span class="flags-modal-tn" id="flagsModalTN">—</span>
-            <button class="flags-modal-close" id="flagsModalClose">✕</button>
+            <span class="flags-modal-tn" id="flagsModalTN">—</span
+            ><button class="flags-modal-close" id="flagsModalClose">✕</button>
           </div>
         </div>
         <div class="flags-modal-body">
-          <!-- step 1: pick type -->
           <p class="flag-section-title">Choose flag type to add</p>
           <div class="flag-type-grid" id="flagTypeGrid"></div>
-
-          <!-- step 2: details form -->
           <div class="flag-add-form hidden" id="flagAddForm">
             <div class="flag-add-row single">
               <div class="flag-fld">
-                <label
-                  >Custom label
-                  <span
-                    style="
-                      color: var(--muted);
-                      font-weight: 400;
-                      text-transform: none;
-                    "
-                    >(leave blank to use default)</span
-                  ></label
-                >
-                <input
+                <label>Custom label (optional)</label
+                ><input
                   type="text"
                   id="flagCustomLabel"
                   placeholder="e.g. ISF Bond Required"
@@ -885,24 +3483,21 @@
             </div>
             <div class="flag-add-row single">
               <div class="flag-fld">
-                <label>Note for customer</label>
-                <textarea
+                <label>Note for customer</label
+                ><textarea
                   id="flagNote"
-                  placeholder="e.g. Your shipment is under review by customs authorities. Please contact our team."
+                  placeholder="e.g. Your shipment is under review by customs authorities."
                 ></textarea>
               </div>
             </div>
             <div class="flag-add-actions">
               <button class="flag-add-btn primary" id="flagConfirmAdd">
-                Add flag to shipment
-              </button>
-              <button class="flag-add-btn ghost" id="flagCancelAdd">
+                Add flag to shipment</button
+              ><button class="flag-add-btn ghost" id="flagCancelAdd">
                 Cancel
               </button>
             </div>
           </div>
-
-          <!-- existing flags list -->
           <p class="flag-section-title">Active flags on this shipment</p>
           <div class="flag-list" id="flagList"></div>
         </div>
@@ -912,5 +3507,601 @@
     <div id="toast"></div>
 
     <script src="assest/js/admin-panel.js"></script>
+    <script>
+      /* ── Sidebar + hamburger ── */
+      const sidebar = document.getElementById("sidebar");
+      const overlay = document.getElementById("sidebarOverlay");
+      const hamburger = document.getElementById("hamburger");
+      function openSidebar() {
+        sidebar.classList.add("open");
+        overlay.classList.add("show");
+      }
+      function closeSidebar() {
+        sidebar.classList.remove("open");
+        overlay.classList.remove("show");
+      }
+      hamburger.addEventListener("click", () =>
+        sidebar.classList.contains("open") ? closeSidebar() : openSidebar(),
+      );
+      overlay.addEventListener("click", closeSidebar);
+
+      /* ── Sidebar navigation ── */
+      const PAGE_TITLES = {
+        dashboard: "Dashboard",
+        addShipment: "Create New Shipment",
+        manageShipments: "Manage Shipments",
+        users: "Manage Users",
+        quotes: "Quotes & Enquiries",
+        quickSMS: "Quick SMS",
+        settings: "Settings",
+      };
+      const SECTIONS = document.querySelectorAll(".sec");
+      const NAV_ITEMS = document.querySelectorAll(
+        ".nav-item[data-tab], .latest-see-all[data-tab]",
+      );
+
+      function showTab(key) {
+        SECTIONS.forEach((s) => {
+          s.classList.remove("active");
+          if (s.id === "sec-" + key) s.classList.add("active");
+        });
+        document
+          .querySelectorAll(".nav-item[data-tab]")
+          .forEach((b) => b.classList.toggle("active", b.dataset.tab === key));
+        document.getElementById("topbarTitle").textContent =
+          PAGE_TITLES[key] || key;
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        closeSidebar();
+        if (key === "dashboard") {
+          setTimeout(() => {
+            if (typeof refreshDash === "function") refreshDash();
+            patchedRefresh();
+          }, 60);
+        }
+        if (key === "manageShipments") {
+          setTimeout(() => {
+            if (typeof renderShips === "function") renderShips();
+          }, 60);
+        }
+        if (key === "quotes") {
+          if (typeof renderQuotes === "function") renderQuotes();
+        }
+        if (key === "users") renderUsers();
+        if (key === "quickSMS") renderQuickSMS();
+      }
+      NAV_ITEMS.forEach((b) =>
+        b.addEventListener("click", () => showTab(b.dataset.tab)),
+      );
+
+      /* Quick-action buttons on dashboard */
+      document
+        .getElementById("qaCreate")
+        .addEventListener("click", () => showTab("addShipment"));
+      document
+        .getElementById("qaManage")
+        .addEventListener("click", () => showTab("manageShipments"));
+
+      /* ── CHART.JS big line chart ── */
+      const SK = "ffl_shipments";
+      let shipChartInst = null;
+      function buildChartData(range) {
+        const all = JSON.parse(localStorage.getItem(SK) || "[]");
+        const year = new Date().getFullYear();
+        if (range === "month") {
+          const months = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+          ];
+          const counts = Array(12).fill(0);
+          all.forEach((s) => {
+            const d = new Date(s.created_at || s.etd || Date.now());
+            if (d.getFullYear() === year) counts[d.getMonth()]++;
+          });
+          return { labels: months, data: counts };
+        } else {
+          const labels = [],
+            data = [];
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            labels.push(
+              d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+            );
+            data.push(
+              all.filter((s) => {
+                const sd = new Date(s.created_at || s.etd || Date.now());
+                return sd.toDateString() === d.toDateString();
+              }).length,
+            );
+          }
+          return { labels, data };
+        }
+      }
+      function renderChart(range) {
+        if (typeof Chart === "undefined") return;
+        const canvasEl = document.getElementById("shipChart");
+        if (!canvasEl) return;
+        const { labels, data } = buildChartData(range);
+        const ctx = canvasEl.getContext("2d");
+        if (shipChartInst) shipChartInst.destroy();
+        shipChartInst = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "Shipments Made",
+                data,
+                borderColor: "#2A9D8F",
+                backgroundColor: "rgba(42,157,143,.1)",
+                borderWidth: 2.5,
+                pointBackgroundColor: "#2A9D8F",
+                pointBorderColor: "#fff",
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                fill: true,
+                tension: 0.3,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { mode: "index", intersect: false },
+            },
+            scales: {
+              x: {
+                grid: { color: "rgba(0,0,0,.05)" },
+                ticks: { font: { size: 12 }, color: "#7a8a99" },
+              },
+              y: {
+                grid: { color: "rgba(0,0,0,.05)" },
+                ticks: {
+                  font: { size: 12 },
+                  color: "#7a8a99",
+                  stepSize: 1,
+                  precision: 0,
+                },
+                beginAtZero: true,
+              },
+            },
+          },
+        });
+        const yearEl = document.getElementById("chartYear");
+        if (yearEl) yearEl.textContent = new Date().getFullYear();
+      }
+      document.querySelectorAll(".chart-tab").forEach((b) => {
+        b.addEventListener("click", () => {
+          document
+            .querySelectorAll(".chart-tab")
+            .forEach((x) => x.classList.remove("active"));
+          b.classList.add("active");
+          renderChart(b.dataset.range);
+        });
+      });
+
+      /* ── Users ── */
+      function buildUsers() {
+        const ships = JSON.parse(localStorage.getItem(SK) || "[]");
+        const quotes = JSON.parse(localStorage.getItem("ffl_quotes") || "[]");
+        const map = new Map();
+        ships.forEach((s) => {
+          const k =
+            s.consignee_email || s.consignee_phone || s.consignee_contact;
+          if (k && !map.has(k))
+            map.set(k, {
+              name: s.consignee_contact,
+              email: s.consignee_email,
+              phone: s.consignee_phone,
+              role: "Customer",
+            });
+        });
+        quotes.forEach((q) => {
+          const k = q.email || q.name;
+          if (k && !map.has(k))
+            map.set(k, {
+              name: q.sender_name || q.name || "—",
+              email: q.email,
+              phone: q.phone,
+              role: "Enquiry",
+            });
+        });
+        return [...map.values()];
+      }
+      function renderUsers() {
+        const users = buildUsers();
+        const stU = document.getElementById("st-users");
+        if (stU) stU.textContent = users.length;
+        const list = document.getElementById("usersList");
+        if (!list) return;
+        if (!users.length) {
+          list.innerHTML = '<div class="empty">No customer records yet.</div>';
+          return;
+        }
+        list.innerHTML = users
+          .map((u) => {
+            const ini = (u.name || "?")
+              .split(" ")
+              .map((w) => w[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2);
+            return `<div class="user-card"><div class="user-avatar">${ini}</div><div><div class="user-name">${u.name || "—"}</div>${u.email ? `<div class="user-email">${u.email}</div>` : ""}<span class="user-role">${u.role}</span></div></div>`;
+          })
+          .join("");
+      }
+
+      /* ── Latest shipments ── */
+      function renderLatest() {
+        const all = JSON.parse(localStorage.getItem(SK) || "[]").slice(0, 6);
+        const el = document.getElementById("latestList");
+        if (!el) return;
+        if (!all.length) {
+          el.innerHTML =
+            '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">No shipments yet.</div>';
+          return;
+        }
+        el.innerHTML = all
+          .map(
+            (s) =>
+              `<div class="latest-item" onclick="showTab('manageShipments')"><div style="flex:1;min-width:0"><div class="latest-tn">${s.tracking_number}</div><div class="latest-email">${s.consignee_email || s.consignee_contact || "—"}</div></div><svg class="latest-arrow" viewBox="0 0 24 24" width="18" height="18" fill="none"><path d="M5 12h13m0 0-5-5m5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`,
+          )
+          .join("");
+      }
+
+      /* ── Mini stats ── */
+      function updateMiniStats() {
+        const all = JSON.parse(localStorage.getItem(SK) || "[]");
+        const s = (id) => document.getElementById(id);
+        if (s("st-attn"))
+          s("st-attn").textContent = all.filter((x) =>
+            ["delayed", "exception"].includes(x.status),
+          ).length;
+        if (s("st-quotes"))
+          s("st-quotes").textContent = JSON.parse(
+            localStorage.getItem("ffl_quotes") || "[]",
+          ).length;
+        if (s("st-booked"))
+          s("st-booked").textContent = all.filter(
+            (x) => x.status === "booked",
+          ).length;
+        if (s("st-users")) s("st-users").textContent = buildUsers().length;
+      }
+
+      /* ── Full dashboard refresh ── */
+      function patchedRefresh() {
+        renderLatest();
+        renderChart(
+          document.querySelector(".chart-tab.active")?.dataset.range || "month",
+        );
+        updateMiniStats();
+      }
+
+      /* ══════════════════════════════════════════════════════
+   QUICK SMS
+══════════════════════════════════════════════════════ */
+      const SMS_LOG_KEY = "ffl_sms_log";
+
+      /* Load config helper (same as admin-panel uses) */
+      function qsLoadCfg() {
+        try {
+          return JSON.parse(localStorage.getItem("ffl_notif_config") || "{}");
+        } catch {
+          return {};
+        }
+      }
+      function qsLoadLog() {
+        try {
+          return JSON.parse(localStorage.getItem(SMS_LOG_KEY) || "[]");
+        } catch {
+          return [];
+        }
+      }
+      function qsSaveLog(l) {
+        localStorage.setItem(SMS_LOG_KEY, JSON.stringify(l));
+      }
+
+      let qsSelectedShipment = null;
+      let qsActiveTpl = "booking";
+
+      /* ── Templates ── */
+      function buildTplMessage(tpl, ship, cfg) {
+        const name =
+          (ship && ship.consignee_contact) ||
+          document.getElementById("smsRecipientName").value.trim() ||
+          "Valued Customer";
+        const tn = ship ? ship.tracking_number : "—";
+        const eta =
+          ship && ship.eta
+            ? new Date(ship.eta).toLocaleDateString("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })
+            : "—";
+        const origin = ship ? ship.origin_port || "—" : "—";
+        const dest = ship ? ship.destination_port || "—" : "—";
+        const cargo = ship ? ship.commodity || "your cargo" : "your cargo";
+        const company = cfg.companyName || "Fast Forward Logistics";
+        const phone = cfg.supportPhone || "+964 780 000 0000";
+
+        const msgs = {
+          booking: `${company}: Hi ${name}, your shipment (${tn}) has been booked. Cargo: ${cargo}. Route: ${origin} → ${dest}. Expected arrival: ${eta}. For updates call ${phone}.`,
+          departed: `${company}: Hi ${name}, your shipment (${tn}) has departed from ${origin}. Expected arrival: ${eta}. We will keep you updated. Contact: ${phone}.`,
+          intransit: `${company}: Hi ${name}, your shipment (${tn}) is in transit from ${origin} to ${dest}. Expected arrival: ${eta}. Track updates online or call ${phone}.`,
+          customs: `${company}: Hi ${name}, your shipment (${tn}) has arrived and is currently going through customs clearance. We expect it to be released shortly. Contact: ${phone}.`,
+          arriving: `${company}: Hi ${name}, great news! Your shipment (${tn}) is arriving soon. Expected delivery: ${eta}. Please ensure someone is available to receive it. Contact: ${phone}.`,
+          delivered: `${company}: Hi ${name}, your shipment (${tn}) has been successfully delivered. Thank you for choosing ${company}. We hope to serve you again. Contact: ${phone}.`,
+          custom: "",
+        };
+        return msgs[tpl] || "";
+      }
+
+      /* ── Render Quick SMS section ── */
+      function renderQuickSMS() {
+        const ships = JSON.parse(localStorage.getItem(SK) || "[]");
+        const cfg = qsLoadCfg();
+
+        /* Shipment picker */
+        const list = document.getElementById("smsShipList");
+        if (!ships.length) {
+          list.innerHTML =
+            '<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">No shipments yet — enter details manually below</div>';
+        } else {
+          list.innerHTML = ships
+            .map(
+              (s) => `
+      <div class="sms-ship-opt${qsSelectedShipment && qsSelectedShipment.tracking_number === s.tracking_number ? " selected" : ""}"
+           data-tn="${s.tracking_number}">
+        <div style="flex:1;min-width:0">
+          <div class="sms-ship-tn">${s.tracking_number}</div>
+          <div class="sms-ship-info">${s.consignee_contact || "—"} · ${s.consignee_phone || "no phone"} · ${s.destination_port || "—"}</div>
+        </div>
+        <span class="badge ${s.status}">${s.status.replace("_", " ")}</span>
+      </div>`,
+            )
+            .join("");
+
+          list.querySelectorAll(".sms-ship-opt").forEach((el) => {
+            el.addEventListener("click", () => {
+              const ship = ships.find(
+                (s) => s.tracking_number === el.dataset.tn,
+              );
+              if (!ship) return;
+              qsSelectedShipment = ship;
+              // Fill in recipient
+              document.getElementById("smsRecipientName").value =
+                ship.consignee_contact || "";
+              document.getElementById("smsPhone").value =
+                ship.consignee_phone || "";
+              // Refresh template
+              applyTemplate(qsActiveTpl);
+              // Highlight selected
+              list
+                .querySelectorAll(".sms-ship-opt")
+                .forEach((x) => x.classList.remove("selected"));
+              el.classList.add("selected");
+            });
+          });
+        }
+
+        /* Render log */
+        renderSMSLog();
+
+        /* Apply current template */
+        applyTemplate(qsActiveTpl);
+      }
+
+      function applyTemplate(tpl) {
+        qsActiveTpl = tpl;
+        const cfg = qsLoadCfg();
+        const body = buildTplMessage(tpl, qsSelectedShipment, cfg);
+        document.getElementById("smsBody").value = body;
+        updateCharCount();
+        document
+          .querySelectorAll(".sms-tpl")
+          .forEach((b) => b.classList.toggle("active", b.dataset.tpl === tpl));
+      }
+
+      function updateCharCount() {
+        const val = document.getElementById("smsBody").value;
+        const len = val.length;
+        const msgs = Math.ceil(len / 160) || 1;
+        const el = document.getElementById("smsCharCount");
+        el.innerHTML = `<span>${len}</span> / 160 characters · ${msgs} SMS${msgs > 1 ? " (multi-part)" : ""}`;
+        el.className = "sms-char-count" + (len > 160 ? " warn" : "");
+      }
+
+      /* ── Template button clicks ── */
+      document.getElementById("smsTemplates").addEventListener("click", (e) => {
+        const btn = e.target.closest(".sms-tpl");
+        if (!btn) return;
+        applyTemplate(btn.dataset.tpl);
+      });
+
+      /* ── Auto-update message when recipient name changes ── */
+      document
+        .getElementById("smsRecipientName")
+        .addEventListener("input", () => {
+          if (qsActiveTpl !== "custom") applyTemplate(qsActiveTpl);
+        });
+
+      /* ── Char count on edit ── */
+      document
+        .getElementById("smsBody")
+        .addEventListener("input", updateCharCount);
+
+      /* ── Clear selection ── */
+      document.getElementById("smsClearPick").addEventListener("click", () => {
+        qsSelectedShipment = null;
+        document.getElementById("smsRecipientName").value = "";
+        document.getElementById("smsPhone").value = "";
+        document
+          .querySelectorAll(".sms-ship-opt")
+          .forEach((x) => x.classList.remove("selected"));
+        applyTemplate(qsActiveTpl);
+      });
+
+      /* ── SEND ── */
+      document
+        .getElementById("smsSendBtn")
+        .addEventListener("click", async () => {
+          const phone = document.getElementById("smsPhone").value.trim();
+          const body = document.getElementById("smsBody").value.trim();
+          const name = document.getElementById("smsRecipientName").value.trim();
+          const cfg = qsLoadCfg();
+          const statusEl = document.getElementById("smsStatus");
+          const sendBtn = document.getElementById("smsSendBtn");
+
+          /* Validate */
+          if (!phone) {
+            alert("Please enter a phone number.");
+            document.getElementById("smsPhone").focus();
+            return;
+          }
+          if (!body) {
+            alert("Please write a message.");
+            document.getElementById("smsBody").focus();
+            return;
+          }
+          if (!cfg.tbApiKey) {
+            alert(
+              "Textbelt is not configured yet. Go to Settings → save your API Key first.",
+            );
+            return;
+          }
+
+          statusEl.textContent = "⏳ Sending…";
+          statusEl.className = "sms-status sending";
+          sendBtn.disabled = true;
+
+          try {
+            const params = new URLSearchParams({
+              phone: phone,
+              message: body,
+              key: cfg.tbApiKey,
+            });
+            const res = await fetch("https://textbelt.com/text", {
+              method: "POST",
+              body: params,
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              statusEl.textContent =
+                "✓ SMS sent to " +
+                phone +
+                "! Credits remaining: " +
+                (data.quotaRemaining ?? "?");
+              statusEl.className = "sms-status success";
+              /* Log it */
+              const log = qsLoadLog();
+              log.unshift({
+                sent_at: new Date().toISOString(),
+                to: phone,
+                name: name,
+                tn: qsSelectedShipment
+                  ? qsSelectedShipment.tracking_number
+                  : null,
+                body: body.slice(0, 80) + (body.length > 80 ? "…" : ""),
+                status: "ok",
+              });
+              qsSaveLog(log.slice(0, 50)); /* keep last 50 */
+              renderSMSLog();
+              /* Reset */
+              document.getElementById("smsBody").value = "";
+              document.getElementById("smsPhone").value = "";
+              document.getElementById("smsRecipientName").value = "";
+              qsSelectedShipment = null;
+              document
+                .querySelectorAll(".sms-ship-opt")
+                .forEach((x) => x.classList.remove("selected"));
+              applyTemplate("booking");
+            } else {
+              const reason = data.error || "Unknown error";
+              statusEl.textContent = "✗ Failed: " + reason;
+              statusEl.className = "sms-status error";
+              /* Log failure */
+              const log = qsLoadLog();
+              log.unshift({
+                sent_at: new Date().toISOString(),
+                to: phone,
+                name,
+                tn: null,
+                body: body.slice(0, 60),
+                status: "fail",
+                reason,
+              });
+              qsSaveLog(log.slice(0, 50));
+              renderSMSLog();
+            }
+          } catch (err) {
+            statusEl.textContent = "✗ Error: " + (err.message || String(err));
+            statusEl.className = "sms-status error";
+          }
+          sendBtn.disabled = false;
+        });
+
+      /* ── Render log ── */
+      function renderSMSLog() {
+        const log = qsLoadLog();
+        const el = document.getElementById("smsLogList");
+        if (!log.length) {
+          el.innerHTML =
+            '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">No messages sent yet.</div>';
+          return;
+        }
+        const fDT = (iso) =>
+          new Date(iso).toLocaleString(undefined, {
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        el.innerHTML = log
+          .map(
+            (l) => `
+    <div class="sms-log-item">
+      <div class="sms-log-time">${fDT(l.sent_at)}</div>
+      <div>
+        <div class="sms-log-to">${l.to}${l.name ? " · " + l.name : ""}${l.tn ? " · " + l.tn : ""}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${l.body}</div>
+      </div>
+      <span class="sms-log-status ${l.status === "ok" ? "ok" : "fail"}">${l.status === "ok" ? "Sent" : "Failed"}</span>
+    </div>`,
+          )
+          .join("");
+      }
+
+      /* ── Clear log ── */
+      document.getElementById("smsClearLog").addEventListener("click", () => {
+        if (!confirm("Clear all sent message logs?")) return;
+        qsSaveLog([]);
+        renderSMSLog();
+      });
+
+      window.addEventListener("load", () => {
+        setTimeout(patchedRefresh, 400);
+      });
+      document
+        .querySelector('[data-tab="dashboard"]')
+        .addEventListener("click", () => {
+          setTimeout(patchedRefresh, 80);
+        });
+    </script>
   </body>
 </html>
