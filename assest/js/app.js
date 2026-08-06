@@ -353,18 +353,29 @@
     const q = raw.trim();
     if (!q) return { none: true };
     if (supabase) {
-      const { data, error } = await supabase
-        .from("shipments")
-        .select("*")
-        .or(
-          `tracking_number.ilike.${q},bill_of_lading.ilike.${q},container_number.ilike.${q}`,
-        )
-        .limit(1)
-        .maybeSingle();
-      if (error) {
-        console.warn("Supabase lookup error:", error.message);
+      try {
+        console.log("[FFL] Looking up in Supabase:", q);
+        const { data, error } = await supabase
+          .from("shipments")
+          .select("*")
+          .or(
+            `tracking_number.ilike.%${q}%,bill_of_lading.ilike.%${q}%,container_number.ilike.%${q}%`,
+          )
+          .limit(1)
+          .maybeSingle();
+        if (error) {
+          console.warn("[FFL] Supabase error:", error.message, error.details);
+        } else if (data) {
+          console.log("[FFL] Found in Supabase:", data.tracking_number);
+          return { shipment: data };
+        } else {
+          console.log("[FFL] Not found in Supabase, checking local...");
+        }
+      } catch (e) {
+        console.warn("[FFL] Supabase exception:", e);
       }
-      if (data) return { shipment: data };
+    } else {
+      console.log("[FFL] Supabase not configured, checking local...");
     }
     const loc = matchLocal(q);
     if (loc) return { shipment: loc };
