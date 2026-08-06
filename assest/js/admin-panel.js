@@ -518,7 +518,7 @@
         (sh.alert_flags || []).filter((f) => f.active)[
           parseInt(btn.dataset.fidx)
         ].active = false;
-        save(SK, all);
+        updateShipAndSync(sh);
         renderFlagList(flagsTN);
         refreshDash();
         toast("Flag removed");
@@ -1204,14 +1204,18 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
   }
 
   function upsertAndSyncShip(ship) {
-    const all = load(SK).filter((s) => s.tracking_number !== ship.tracking_number);
+    const all = load(SK).filter(
+      (s) => s.tracking_number !== ship.tracking_number,
+    );
     all.unshift(ship);
     save(SK, all);
     if (hasSupabaseConfig()) upsertShipmentToSupabase(ship).catch(() => {});
   }
 
   function updateShipAndSync(ship) {
-    const all = load(SK).map((s) => (s.tracking_number === ship.tracking_number ? ship : s));
+    const all = load(SK).map((s) =>
+      s.tracking_number === ship.tracking_number ? ship : s,
+    );
     save(SK, all);
     if (hasSupabaseConfig()) upsertShipmentToSupabase(ship).catch(() => {});
   }
@@ -1224,7 +1228,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
   }
 
   var SUPABASE_READY = hasSupabaseConfig();
-  
+
   function fillSettings() {
     const c = loadCfg();
     $("ejsPublicKey").value = c.ejsPublicKey || "";
@@ -1569,7 +1573,7 @@ Thank you for choosing ${company}.`;
             Boolean,
           ),
         });
-        save(SK, all);
+        updateShipAndSync(ship);
       }
       toast("Notification sent!");
       setTimeout(() => closeNotifModal(), 2200);

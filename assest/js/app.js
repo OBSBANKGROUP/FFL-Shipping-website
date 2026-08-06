@@ -10,15 +10,38 @@
 
   /* ── Supabase (optional) ── */
   const cfg = window.FFL_CONFIG || {};
+  const localSupabase = (() => {
+    try {
+      const raw = localStorage.getItem("ffl_notif_config");
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return {
+        SUPABASE_URL: (parsed.supabaseUrl || "").trim(),
+        SUPABASE_ANON_KEY: (parsed.supabaseAnonKey || "").trim(),
+      };
+    } catch {
+      return {};
+    }
+  })();
+
+  const finalCfg = {
+    SUPABASE_URL:
+      cfg.SUPABASE_URL && !cfg.SUPABASE_URL.startsWith("YOUR_")
+        ? cfg.SUPABASE_URL
+        : localSupabase.SUPABASE_URL,
+    SUPABASE_ANON_KEY:
+      cfg.SUPABASE_ANON_KEY && !cfg.SUPABASE_ANON_KEY.startsWith("YOUR_")
+        ? cfg.SUPABASE_ANON_KEY
+        : localSupabase.SUPABASE_ANON_KEY,
+  };
+
   const configured =
-    cfg.SUPABASE_URL &&
-    cfg.SUPABASE_ANON_KEY &&
-    !cfg.SUPABASE_URL.startsWith("YOUR_");
+    finalCfg.SUPABASE_URL && finalCfg.SUPABASE_ANON_KEY;
   let supabase = null;
   if (configured && window.supabase)
     supabase = window.supabase.createClient(
-      cfg.SUPABASE_URL,
-      cfg.SUPABASE_ANON_KEY,
+      finalCfg.SUPABASE_URL,
+      finalCfg.SUPABASE_ANON_KEY,
     );
 
   /* ── Port coordinate lookup ── */
