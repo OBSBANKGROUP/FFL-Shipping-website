@@ -89,7 +89,7 @@
       </div>
       <div class="footer-bar">
         <span class="mode-badge" id="dataMode" style="display:none"></span>
-        <span>© <span id="year"></span> Fast Forward Logistics. All rights reserved. Handcrafted by Quakevision Digital Agency</span>
+        <span>2009–<span id="year"></span> Fast Forward Logistics. All rights reserved. Handcrafted by Quakevision</span>
       </div>`;
   }
 
