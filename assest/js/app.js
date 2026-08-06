@@ -355,12 +355,16 @@
     if (supabase) {
       const { data, error } = await supabase
         .from("shipments")
-        .select("*, tracking_events(event_time, location, description)")
+        .select("*")
         .or(
           `tracking_number.ilike.${q},bill_of_lading.ilike.${q},container_number.ilike.${q}`,
         )
-        .limit(1);
-      if (!error && data && data.length) return { shipment: data[0] };
+        .limit(1)
+        .maybeSingle();
+      if (error) {
+        console.warn("Supabase lookup error:", error.message);
+      }
+      if (data) return { shipment: data };
     }
     const loc = matchLocal(q);
     if (loc) return { shipment: loc };
