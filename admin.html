@@ -717,15 +717,47 @@
         background: rgba(22, 50, 74, 0.1);
         color: var(--ink2);
       }
+      .badge.invoice_issued {
+        background: rgba(39, 174, 96, 0.12);
+        color: #1a6b3a;
+      }
+      .badge.preparing_dispatch {
+        background: rgba(52, 152, 219, 0.15);
+        color: #1a5276;
+      }
+      .badge.in_warehouse {
+        background: rgba(142, 68, 173, 0.12);
+        color: #6c3483;
+      }
       .badge.in_transit,
       .badge.customs,
       .badge.out_for_delivery {
         background: rgba(242, 161, 4, 0.18);
         color: var(--amber-dk);
       }
+      .badge.distribution {
+        background: rgba(22, 160, 133, 0.15);
+        color: #0e6655;
+      }
       .badge.delivered {
         background: rgba(42, 157, 143, 0.18);
         color: var(--teal-lt);
+      }
+      .badge.on_hold {
+        background: rgba(214, 69, 69, 0.2);
+        color: var(--alert);
+        font-weight: 800;
+        animation: holdPulse 1.5s ease infinite;
+        letter-spacing: 0.8px;
+      }
+      @keyframes holdPulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.6;
+        }
       }
       .badge.delayed,
       .badge.exception {
@@ -2842,10 +2874,17 @@
                   <label>Status</label
                   ><select name="status">
                     <option value="booked">Booked</option>
-                    <option value="in_transit">In transit</option>
-                    <option value="customs">Customs clearance</option>
-                    <option value="out_for_delivery">Out for delivery</option>
+                    <option value="invoice_issued">Invoice Issued</option>
+                    <option value="preparing_dispatch">
+                      Preparing for Dispatch
+                    </option>
+                    <option value="in_warehouse">In Warehouse</option>
+                    <option value="in_transit">In Transit</option>
+                    <option value="customs">Customs Clearance</option>
+                    <option value="out_for_delivery">Out for Delivery</option>
+                    <option value="distribution">Distribution</option>
                     <option value="delivered">Delivered</option>
+                    <option value="on_hold">ON HOLD ⚠️</option>
                     <option value="delayed">Delayed</option>
                     <option value="exception">Exception</option>
                   </select>
@@ -3173,14 +3212,6 @@
                     type="text"
                     id="smsProxyUrl"
                     placeholder="https://YOUR_PROJECT.supabase.co/functions/v1/send-sms"
-                  />
-                </div>
-                <div class="field full">
-                  <label>Supabase Project URL</label>
-                  <input
-                    type="text"
-                    id="supabaseUrl"
-                    placeholder="https://YOUR_PROJECT.supabase.co"
                   />
                 </div>
                 <div class="field full">
@@ -3779,7 +3810,6 @@
 
     <div id="toast"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assest/js/admin-panel.js"></script>
     <script>
       /* ── Sidebar + hamburger ── */

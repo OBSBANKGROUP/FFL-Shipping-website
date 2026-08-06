@@ -10,38 +10,15 @@
 
   /* ── Supabase (optional) ── */
   const cfg = window.FFL_CONFIG || {};
-  const localSupabase = (() => {
-    try {
-      const raw = localStorage.getItem("ffl_notif_config");
-      if (!raw) return {};
-      const parsed = JSON.parse(raw);
-      return {
-        SUPABASE_URL: (parsed.supabaseUrl || "").trim(),
-        SUPABASE_ANON_KEY: (parsed.supabaseAnonKey || "").trim(),
-      };
-    } catch {
-      return {};
-    }
-  })();
-
-  const finalCfg = {
-    SUPABASE_URL:
-      cfg.SUPABASE_URL && !cfg.SUPABASE_URL.startsWith("YOUR_")
-        ? cfg.SUPABASE_URL
-        : localSupabase.SUPABASE_URL,
-    SUPABASE_ANON_KEY:
-      cfg.SUPABASE_ANON_KEY && !cfg.SUPABASE_ANON_KEY.startsWith("YOUR_")
-        ? cfg.SUPABASE_ANON_KEY
-        : localSupabase.SUPABASE_ANON_KEY,
-  };
-
   const configured =
-    finalCfg.SUPABASE_URL && finalCfg.SUPABASE_ANON_KEY;
+    cfg.SUPABASE_URL &&
+    cfg.SUPABASE_ANON_KEY &&
+    !cfg.SUPABASE_URL.startsWith("YOUR_");
   let supabase = null;
   if (configured && window.supabase)
     supabase = window.supabase.createClient(
-      finalCfg.SUPABASE_URL,
-      finalCfg.SUPABASE_ANON_KEY,
+      cfg.SUPABASE_URL,
+      cfg.SUPABASE_ANON_KEY,
     );
 
   /* ── Port coordinate lookup ── */
@@ -269,10 +246,19 @@
   ];
   const STATUS = {
     booked: { label: "Booked", stage: 0, tone: "neutral" },
-    in_transit: { label: "In transit", stage: 2, tone: "live" },
-    customs: { label: "Customs clearance", stage: 3, tone: "live" },
-    out_for_delivery: { label: "Out for delivery", stage: 3, tone: "live" },
+    invoice_issued: { label: "Invoice Issued", stage: 0, tone: "neutral" },
+    preparing_dispatch: {
+      label: "Preparing for Dispatch",
+      stage: 1,
+      tone: "live",
+    },
+    in_warehouse: { label: "In Warehouse", stage: 1, tone: "live" },
+    in_transit: { label: "In Transit", stage: 2, tone: "live" },
+    customs: { label: "Customs Clearance", stage: 3, tone: "live" },
+    out_for_delivery: { label: "Out for Delivery", stage: 3, tone: "live" },
+    distribution: { label: "Distribution", stage: 3, tone: "live" },
     delivered: { label: "Delivered", stage: 4, tone: "done" },
+    on_hold: { label: "ON HOLD", stage: 2, tone: "hold" },
     delayed: { label: "Delayed", stage: 2, tone: "alert" },
     exception: { label: "Exception", stage: 2, tone: "alert" },
   };
@@ -557,6 +543,7 @@
     const isAir = s.mode === "air";
     const isDone = st.tone === "done";
     const isAlert = st.tone === "alert";
+    const isHold = st.tone === "hold";
 
     const nowMs = Date.now();
     const events = (s.tracking_events || [])
@@ -569,6 +556,9 @@
     if (isDone) {
       hLabel = "Delivered";
       hDate = bigDate(latest ? latest.event_time : s.eta);
+    } else if (isHold) {
+      hLabel = "Shipment on hold";
+      hDate = bigDate(s.eta);
     } else if (isAlert) {
       hLabel = "Delivery delayed";
       hDate = bigDate(s.eta);
@@ -699,7 +689,7 @@
 
     resultEl.innerHTML = `
       <div class="fx">
-        <div class="fx-head fx-tone-${st.tone}">
+        <div class="fx-head fx-tone-${isHold ? "hold" : st.tone}">
           <div class="fx-status">
             <p class="fx-status-label">${esc(hLabel)}</p>
             <p class="fx-status-date">${esc(hDate)}</p>
@@ -716,6 +706,23 @@
           <ol class="fx-stages">${stepsHtml}</ol>
         </div>
         ${flagsNoticeHtml}
+        ${
+          isHold
+            ? `
+        <div class="fx-hold-banner">
+          <div class="fx-hold-icon">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+              <path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <p class="fx-hold-title">⚠️ Your shipment is currently ON HOLD</p>
+            <p class="fx-hold-msg">Your shipment requires attention and has been placed on hold. Please contact our team immediately to resolve this.</p>
+            <a href="contact.html" class="fx-hold-cta">Contact us now →</a>
+          </div>
+        </div>`
+            : ""
+        }
         <div class="fx-body">
           <section class="fx-history-wrap">
             <h3 class="fx-h">Travel history</h3>

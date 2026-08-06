@@ -4017,3 +4017,119 @@ nav a,
     padding: 32px 16px;
   }
 }
+
+/* ── ON HOLD status ── */
+.fx-tone-hold {
+  background: linear-gradient(135deg, #7b1c1c, #c0392b);
+}
+.fx-tone-hold .fx-status-label {
+  color: #ffd5d5;
+}
+.fx-tone-hold .fx-status-date {
+  color: #fff;
+}
+.fx-tone-hold .fx-dot {
+  background: #ff8080;
+  animation: holdDot 1s ease infinite;
+}
+@keyframes holdDot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.4);
+  }
+}
+
+.fx-hold-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: #fff0f0;
+  border: 2px solid #e74c3c;
+  border-radius: var(--r);
+  padding: 20px 22px;
+  animation: holdFade 1.5s ease infinite alternate;
+}
+@keyframes holdFade {
+  from {
+    border-color: #e74c3c;
+  }
+  to {
+    border-color: #ff8080;
+  }
+}
+.fx-hold-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #e74c3c;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+.fx-hold-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #c0392b;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.fx-hold-msg {
+  font-size: 14px;
+  color: #7b1c1c;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.fx-hold-cta {
+  display: inline-block;
+  background: #e74c3c;
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.fx-hold-cta:hover {
+  background: #c0392b;
+}
+
+/* ── New status badge colors on public tracking page ── */
+.badge.invoice_issued {
+  background: rgba(39, 174, 96, 0.12);
+  color: #1a6b3a;
+}
+.badge.preparing_dispatch {
+  background: rgba(52, 152, 219, 0.15);
+  color: #1a5276;
+}
+.badge.in_warehouse {
+  background: rgba(142, 68, 173, 0.12);
+  color: #6c3483;
+}
+.badge.distribution {
+  background: rgba(22, 160, 133, 0.15);
+  color: #0e6655;
+}
+.badge.on_hold {
+  background: rgba(214, 69, 69, 0.2);
+  color: #c0392b;
+  font-weight: 800;
+  animation: holdPulse 1.5s ease infinite;
+}
+@keyframes holdPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}

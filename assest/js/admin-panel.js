@@ -3,6 +3,20 @@
   "use strict";
   const SK = "ffl_shipments",
     QK = "ffl_quotes";
+
+  /* ── Supabase client (reads from FFL_CONFIG set in config.js) ── */
+  const _cfg = window.FFL_CONFIG || {};
+  const _sbOk =
+    _cfg.SUPABASE_URL &&
+    _cfg.SUPABASE_ANON_KEY &&
+    !_cfg.SUPABASE_URL.startsWith("YOUR_") &&
+    !_cfg.SUPABASE_ANON_KEY.startsWith("YOUR_");
+  const _sb =
+    _sbOk && window.supabase
+      ? window.supabase.createClient(_cfg.SUPABASE_URL, _cfg.SUPABASE_ANON_KEY)
+      : null;
+
+  /* ── Helpers: always mirror to localStorage as cache ── */
   const load = (k) => {
     try {
       return JSON.parse(localStorage.getItem(k) || "[]");
@@ -11,6 +25,70 @@
     }
   };
   const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+  /* ── Supabase read ── */
+  async function sbLoad() {
+    if (!_sb) return null;
+    try {
+      const { data, error } = await _sb
+        .from("shipments")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) {
+        console.warn("Supabase read error:", error.message);
+        return null;
+      }
+      // Mirror to localStorage cache
+      localStorage.setItem(SK, JSON.stringify(data || []));
+      return data || [];
+    } catch (e) {
+      console.warn("Supabase unavailable:", e);
+      return null;
+    }
+  }
+
+  /* ── Supabase write (upsert single shipment) ── */
+  async function sbSave(rec) {
+    if (!_sb) return false;
+    try {
+      const { error } = await _sb
+        .from("shipments")
+        .upsert(rec, { onConflict: "tracking_number" });
+      if (error) {
+        console.warn("Supabase write error:", error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.warn("Supabase write failed:", e);
+      return false;
+    }
+  }
+
+  /* ── Supabase delete ── */
+  async function sbDelete(tn) {
+    if (!_sb) return false;
+    try {
+      const { error } = await _sb
+        .from("shipments")
+        .delete()
+        .eq("tracking_number", tn);
+      if (error) {
+        console.warn("Supabase delete error:", error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* ── Refresh data from Supabase into cache then redraw ── */
+  async function syncAndRefresh() {
+    const data = await sbLoad();
+    if (data !== null) save(SK, data);
+    refreshDash();
+  }
   const $ = (id) => document.getElementById(id);
   const esc = (s) =>
     String(s ?? "").replace(
@@ -116,10 +194,15 @@
   /* ── status meta ── */
   const STATUSES = [
     { v: "booked", l: "Booked" },
-    { v: "in_transit", l: "In transit" },
-    { v: "customs", l: "Customs" },
-    { v: "out_for_delivery", l: "Out for delivery" },
+    { v: "invoice_issued", l: "Invoice Issued" },
+    { v: "preparing_dispatch", l: "Preparing for Dispatch" },
+    { v: "in_warehouse", l: "In Warehouse" },
+    { v: "in_transit", l: "In Transit" },
+    { v: "customs", l: "Customs Clearance" },
+    { v: "out_for_delivery", l: "Out for Delivery" },
+    { v: "distribution", l: "Distribution" },
     { v: "delivered", l: "Delivered" },
+    { v: "on_hold", l: "ON HOLD" },
     { v: "delayed", l: "Delayed" },
     { v: "exception", l: "Exception" },
   ];
@@ -254,7 +337,15 @@
     const stTransit = $("st-transit");
     if (stTransit)
       stTransit.textContent = all.filter((s) =>
-        ["in_transit", "customs", "out_for_delivery"].includes(s.status),
+        [
+          "in_transit",
+          "customs",
+          "out_for_delivery",
+          "distribution",
+          "preparing_dispatch",
+          "in_warehouse",
+          "invoice_issued",
+        ].includes(s.status),
       ).length;
     const stDone = $("st-done");
     if (stDone)
@@ -350,7 +441,12 @@
     }
     const dl = e.target.closest("[data-del]");
     if (dl && confirm(`Delete ${dl.dataset.del}?`)) {
-      deleteShipAndSync(dl.dataset.del);
+      const delTN = dl.dataset.del;
+      save(
+        SK,
+        load(SK).filter((s) => s.tracking_number !== delTN),
+      );
+      sbDelete(delTN).then(() => syncAndRefresh());
       refreshDash();
     }
   });
@@ -463,7 +559,7 @@
       added_at: new Date().toISOString(),
     });
     save(SK, all);
-    if (hasSupabaseConfig()) upsertShipmentToSupabase(ship).catch(() => {});
+    sbSave(ship).catch(() => {}); // sync flags to Supabase
     selectedFlagType = null;
     $("flagCustomLabel").value = "";
     $("flagNote").value = "";
@@ -518,7 +614,7 @@
         (sh.alert_flags || []).filter((f) => f.active)[
           parseInt(btn.dataset.fidx)
         ].active = false;
-        updateShipAndSync(sh);
+        save(SK, all);
         renderFlagList(flagsTN);
         refreshDash();
         toast("Flag removed");
@@ -564,9 +660,16 @@
     const statusColor =
       s.status === "delivered"
         ? "#1a7a4a"
-        : s.status === "delayed" || s.status === "exception"
+        : ["delayed", "exception", "on_hold"].includes(s.status)
           ? "#c0392b"
-          : "#1a6b2a";
+          : [
+                "in_transit",
+                "customs",
+                "out_for_delivery",
+                "distribution",
+              ].includes(s.status)
+            ? "#1a5276"
+            : "#1a6b2a";
     const USD = (n) =>
       n > 0
         ? "USD " +
@@ -690,7 +793,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
   <div class="company-band">
     <p>Fast Forward Logistics Company</p>
     <p>Address: Baghdad, Iraq · USA · Europe · Worldwide</p>
-    <p>Email: hello@fastforward.iq · Website: www.fastforward.iq</p>
+    <p>Email: support@fastforwardlogistics.express · Website: www.fastforward.iq</p>
   </div>
   <div class="parties-row">
     <div class="party">
@@ -764,7 +867,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
     </div>
   </div>
 </div>
-<div class="inv-footer">Fast Forward Logistics · hello@fastforward.iq · +964 780 000 0000 · Baghdad, Iraq | Thank you for choosing Fast Forward Logistics.</div>
+<div class="inv-footer">Fast Forward Logistics · support@fastforwardlogistics.express · +1 (943) 210 8427 · Baghdad, Iraq | Thank you for choosing Fast Forward Logistics.</div>
 </div></body></html>`;
     const win = window.open("", "_blank", "width=880,height=1100");
     if (!win) {
@@ -832,10 +935,12 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
     });
     const ns = $("updStatus").value;
     if (ns) ship.status = ns;
-    updateShipAndSync(ship);
+    save(SK, all);
     closeModal();
     refreshDash();
     toast(`Update posted on ${modalTN}`);
+    const _updShip = all.find((s) => s.tracking_number === modalTN);
+    if (_updShip) sbSave(_updShip).catch(() => {});
   });
 
   /* ════════ ADD / EDIT FORM ════════ */
@@ -1054,10 +1159,15 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
       (s) => s.tracking_number.toLowerCase() !== tn.toLowerCase(),
     );
     all.unshift(rec);
-    saveAndSyncShipments(all);
+    save(SK, all);
     resetForm();
-    toast(`Saved ${tn}`);
-    if (window.showTab) window.showTab("dashboard");
+    toast(`Saving ${tn}…`);
+    sbSave(rec).then((ok) => {
+      if (ok) toast(`✓ Saved ${tn} to Supabase`);
+      else toast(`✓ Saved ${tn} locally (Supabase offline)`);
+      if (window.showTab) window.showTab("dashboard");
+      setTimeout(syncAndRefresh, 500);
+    });
   });
 
   /* ════════ QUOTES ════════ */
@@ -1094,152 +1204,17 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
     localStorage.setItem(CFG_KEY, JSON.stringify(obj));
   }
 
-  let supabase = null;
-  function getSupabaseConfig() {
-    const c = loadCfg();
-    return {
-      url: (c.supabaseUrl || "").trim(),
-      anonKey: (c.supabaseAnonKey || "").trim(),
-    };
-  }
-  function hasSupabaseConfig() {
-    const cfg = getSupabaseConfig();
-    return cfg.url && cfg.anonKey && typeof window.supabase === "function";
-  }
-  function getSupabaseClient() {
-    if (supabase) return supabase;
-    const cfg = getSupabaseConfig();
-    if (!cfg.url || !cfg.anonKey) return null;
-    if (!window.supabase || typeof window.supabase.createClient !== "function")
-      return null;
-    supabase = window.supabase.createClient(cfg.url, cfg.anonKey);
-    return supabase;
-  }
-
-  async function loadShipmentsFromSupabase() {
-    const sb = getSupabaseClient();
-    if (!sb) return null;
-    try {
-      const { data, error } = await sb
-        .from("shipments")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) {
-        console.warn("Supabase shipment load error:", error.message || error);
-        return null;
-      }
-      return Array.isArray(data) ? data : [];
-    } catch (err) {
-      console.warn("Supabase shipment exception:", err.message || err);
-      return null;
-    }
-  }
-
-  async function syncShipmentsFromSupabase() {
-    const remote = await loadShipmentsFromSupabase();
-    if (!remote) return false;
-    save(SK, remote);
-    refreshDash();
-    toast("Supabase shipment data synced");
-    return true;
-  }
-
-  async function upsertShipmentToSupabase(ship) {
-    const sb = getSupabaseClient();
-    if (!sb) return false;
-    try {
-      const record = { ...ship };
-      record.tracking_events = record.tracking_events || [];
-      record.alert_flags = record.alert_flags || [];
-      record.notifications = record.notifications || [];
-      const { error } = await sb.from("shipments").upsert([record], {
-        onConflict: "tracking_number",
-      });
-      if (error) {
-        console.warn("Supabase shipment upsert error:", error.message || error);
-        return false;
-      }
-      return true;
-    } catch (err) {
-      console.warn("Supabase shipment upsert exception:", err.message || err);
-      return false;
-    }
-  }
-
-  function subscribeToSupabaseShipments() {
-    const sb = getSupabaseClient();
-    if (!sb || !sb.channel) return;
-    const channel = sb
-      .channel("public:shipments")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "shipments" },
-        async () => {
-          await syncShipmentsFromSupabase();
-        },
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.info("Supabase realtime shipment subscription active.");
-        }
-      });
-    window.supabaseShipmentChannel = channel;
-  }
-
-  function maybeSyncSupabase() {
-    if (hasSupabaseConfig()) {
-      syncShipmentsFromSupabase();
-      subscribeToSupabaseShipments();
-    }
-  }
-
-  function saveAndSyncShipments(all) {
-    save(SK, all);
-    if (hasSupabaseConfig()) {
-      const ship = all[0];
-      if (ship && ship.tracking_number) {
-        upsertShipmentToSupabase(ship).catch(() => {});
-      }
-    }
-  }
-
-  function upsertAndSyncShip(ship) {
-    const all = load(SK).filter(
-      (s) => s.tracking_number !== ship.tracking_number,
-    );
-    all.unshift(ship);
-    save(SK, all);
-    if (hasSupabaseConfig()) upsertShipmentToSupabase(ship).catch(() => {});
-  }
-
-  function updateShipAndSync(ship) {
-    const all = load(SK).map((s) =>
-      s.tracking_number === ship.tracking_number ? ship : s,
-    );
-    save(SK, all);
-    if (hasSupabaseConfig()) upsertShipmentToSupabase(ship).catch(() => {});
-  }
-
-  function syncOnStart() {
-    if (hasSupabaseConfig()) {
-      syncShipmentsFromSupabase();
-      subscribeToSupabaseShipments();
-    }
-  }
-
-  var SUPABASE_READY = hasSupabaseConfig();
-
   function fillSettings() {
     const c = loadCfg();
     $("ejsPublicKey").value = c.ejsPublicKey || "";
     $("ejsServiceId").value = c.ejsServiceId || "";
     $("ejsTemplateId").value = c.ejsTemplateId || "";
     $("smsProxyUrl").value = c.smsProxyUrl || "";
-    $("supabaseUrl").value = c.supabaseUrl || "";
     $("supabaseAnonKey").value = c.supabaseAnonKey || "";
     $("cfgCompanyName").value = c.companyName || "Fast Forward Logistics";
-    $("cfgSupportPhone").value = c.supportPhone || "+964 780 000 0000";
-    $("cfgSupportEmail").value = c.supportEmail || "hello@fastforward.iq";
+    $("cfgSupportPhone").value = c.supportPhone || "+1 (943) 210 8427";
+    $("cfgSupportEmail").value =
+      c.supportEmail || "support@fastforwardlogistics.express";
     $("cfgTrackingUrl").value =
       c.trackingUrl || window.location.origin + "/tracking.html";
   }
@@ -1250,7 +1225,6 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
       ejsServiceId: $("ejsServiceId").value.trim(),
       ejsTemplateId: $("ejsTemplateId").value.trim(),
       smsProxyUrl: $("smsProxyUrl").value.trim(),
-      supabaseUrl: $("supabaseUrl").value.trim(),
       supabaseAnonKey: $("supabaseAnonKey").value.trim(),
       companyName: $("cfgCompanyName").value.trim(),
       supportPhone: $("cfgSupportPhone").value.trim(),
@@ -1265,7 +1239,6 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
       m.style.display = "none";
     }, 3000);
     toast("Settings saved");
-    syncOnStart();
   });
 
   $("testEmail").addEventListener("click", async () => {
@@ -1396,8 +1369,8 @@ Expected arrival: ${fmtEta(s.eta)}
 ${trackUrl}
 
 For any enquiries please contact us:
-📧 ${cfg.supportEmail || "hello@fastforward.iq"}
-📞 ${cfg.supportPhone || "+964 780 000 0000"}
+📧 ${cfg.supportEmail || "support@fastforwardlogistics.express"}
+📞 ${cfg.supportPhone || "+1 (943) 210 8427"}
 
 Thank you for choosing ${company}.`;
   }
@@ -1573,7 +1546,7 @@ Thank you for choosing ${company}.`;
             Boolean,
           ),
         });
-        updateShipAndSync(ship);
+        save(SK, all);
       }
       toast("Notification sent!");
       setTimeout(() => closeNotifModal(), 2200);
@@ -1582,9 +1555,13 @@ Thank you for choosing ${company}.`;
 
   /* ── init ── */
   resetForm();
-  refreshDash();
   fillSettings();
-  syncOnStart();
+  sbLoad()
+    .then((data) => {
+      if (data !== null) save(SK, data);
+      refreshDash();
+    })
+    .catch(() => refreshDash());
   // Expose key functions globally so admin.html showTab() can call them
   window.renderShips = renderShips;
   window.refreshDash = refreshDash;

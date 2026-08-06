@@ -12,6 +12,6 @@
    in schema.sql restricts it to read-only public tracking lookups.
 --------------------------------------------------------------------- */
 window.FFL_CONFIG = {
-  SUPABASE_URL: "YOUR_SUPABASE_URL", // e.g. https://abcd1234.supabase.co
-  SUPABASE_ANON_KEY: "YOUR_SUPABASE_ANON_KEY",
+  SUPABASE_URL: "https://tovkewwitmqaunwqmiuf.supabase.co", // e.g. https://abcd1234.supabase.co
+  SUPABASE_ANON_KEY: "sb_publishable_xaew-lInTXnCE-qBbCH4AQ_po7oHkjl",
 };
