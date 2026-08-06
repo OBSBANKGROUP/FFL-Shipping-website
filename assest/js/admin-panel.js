@@ -1204,10 +1204,9 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
       const data = await res.json();
       if (data.success) {
         m.textContent =
-          "✓ Test SMS sent to " +
-          testPhone.trim() +
-          "! Credits remaining: " +
-          (data.quotaRemaining ?? "?");
+          "✓ SMS sent! Message SID: " +
+          (data.messageSid || "—") +
+          ". Check your phone.";
         m.style.color = "var(--teal)";
       } else {
         m.textContent = "✗ SMS failed: " + (data.error || JSON.stringify(data));
@@ -1406,8 +1405,8 @@ Thank you for choosing ${company}.`;
             results.push(
               "✓ SMS sent to " +
                 s.consignee_phone +
-                " · Credits left: " +
-                (data.quotaRemaining ?? "?"),
+                " · SID: " +
+                (data.messageSid || "—"),
             );
           } else {
             results.push(

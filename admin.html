@@ -4025,8 +4025,8 @@
               statusEl.textContent =
                 "✓ SMS sent to " +
                 phone +
-                "! Credits remaining: " +
-                (data.quotaRemaining ?? "?");
+                "! Message SID: " +
+                (data.messageSid || "—");
               statusEl.className = "sms-status success";
               /* Log it */
               const log = qsLoadLog();
