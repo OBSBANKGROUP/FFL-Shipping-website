@@ -350,35 +350,70 @@
     );
 
   async function lookup(raw) {
-    const q = raw.trim();
+    const q = raw.trim().toUpperCase();
     if (!q) return { none: true };
+
+    /* ── 1. Try Supabase (primary — works on all devices worldwide) ── */
     if (supabase) {
       try {
-        console.log("[FFL] Looking up in Supabase:", q);
-        const { data, error } = await supabase
+        console.log("[FFL] Querying Supabase for:", q);
+        /* Try exact match on tracking_number first (fastest) */
+        let { data, error } = await supabase
           .from("shipments")
           .select("*")
-          .or(
-            `tracking_number.ilike.%${q}%,bill_of_lading.ilike.%${q}%,container_number.ilike.%${q}%`,
-          )
-          .limit(1)
+          .ilike("tracking_number", q)
           .maybeSingle();
+
+        /* If not found, try bill of lading */
+        if (!data && !error) {
+          const r2 = await supabase
+            .from("shipments")
+            .select("*")
+            .ilike("bill_of_lading", q)
+            .maybeSingle();
+          data = r2.data;
+          error = r2.error;
+        }
+
+        /* If not found, try container number */
+        if (!data && !error) {
+          const r3 = await supabase
+            .from("shipments")
+            .select("*")
+            .ilike("container_number", q)
+            .maybeSingle();
+          data = r3.data;
+          error = r3.error;
+        }
+
         if (error) {
-          console.warn("[FFL] Supabase error:", error.message, error.details);
+          console.warn("[FFL] Supabase error:", error.message);
         } else if (data) {
           console.log("[FFL] Found in Supabase:", data.tracking_number);
           return { shipment: data };
         } else {
-          console.log("[FFL] Not found in Supabase, checking local...");
+          console.log("[FFL] Not found in Supabase for:", q);
         }
       } catch (e) {
         console.warn("[FFL] Supabase exception:", e);
       }
     } else {
-      console.log("[FFL] Supabase not configured, checking local...");
+      console.log("[FFL] Supabase not configured");
     }
-    const loc = matchLocal(q);
-    if (loc) return { shipment: loc };
+
+    /* ── 2. Try localStorage (admin device cache) ── */
+    const loc = localShipments().find(
+      (s) =>
+        eq(s.tracking_number, q) ||
+        eq(s.bill_of_lading, q) ||
+        eq(s.container_number, q),
+    );
+    if (loc) {
+      console.log("[FFL] Found in local cache");
+      return { shipment: loc };
+    }
+
+    /* ── 3. Demo shipments (fallback) ── */
     const hit = Object.values(DEMO).find(
       (s) =>
         eq(s.tracking_number, q) ||
