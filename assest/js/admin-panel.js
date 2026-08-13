@@ -1175,6 +1175,12 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
     const existing = editKey
       ? load(SK).find((s) => s.tracking_number === editKey) || {}
       : {};
+    // collect events and determine final status from last event row that has a status set
+    const rawEvs = collectEvs();
+    const lastEvWithStatus = [...rawEvs].reverse().find((e) => e.status);
+    const finalStatus = lastEvWithStatus
+      ? lastEvWithStatus.status
+      : fv("status");
     const rec = {
       tracking_number: tn,
       mode: fv("mode"),
@@ -1199,7 +1205,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
       charge_shipment: cs || null,
       charge_handling: ch || null,
       charge_total: cs + ch || null,
-      tracking_events: collectEvs(),
+      tracking_events: rawEvs,
       alert_flags: existing.alert_flags || [],
       created_at: new Date().toISOString(),
     };
