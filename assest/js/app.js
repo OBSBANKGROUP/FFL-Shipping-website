@@ -605,15 +605,22 @@
     );
 
     /* ── Derive live status from events ──────────────────────────
-       Logic:
-       • The CURRENT event is the most recent past event that has a status.
-       • If no event has a status yet, fall back to the shipment's stored status.
-       • Future events are completely hidden from the customer.
+       ONLY past events count toward the current status.
+       Future events are invisible — they activate automatically
+       when their scheduled time is reached.
     ──────────────────────────────────────────────────────────── */
     const pastEventsDesc = [...pastEvents].reverse(); // newest first
     const currentEvt = pastEventsDesc[0] || null; // most recent visible event
-    const lastStatusEvt = pastEventsDesc.find((e) => e.status); // last event with a status set
-    const liveStatus = lastStatusEvt ? lastStatusEvt.status : s.status;
+
+    /* Status = last PAST event that has a status set.
+       If no past events have a status, use the shipment's base status.
+       If NO past events exist yet, show as Booked (nothing has happened). */
+    const lastStatusEvt = pastEventsDesc.find((e) => e.status);
+    const liveStatus = lastStatusEvt
+      ? lastStatusEvt.status
+      : pastEvents.length === 0
+        ? "booked" // nothing happened yet → show booked
+        : s.status; // fallback to stored status
 
     const st = STATUS[liveStatus] || STATUS.booked;
     const isDone = st.tone === "done";
@@ -653,7 +660,17 @@
           <p class="fx-current-time">${bigDate(currentEvt.event_time)} at ${timeOf(currentEvt.event_time)}</p>
         </div>
       </div>`
-      : "";
+      : futureEvents.length
+        ? `
+      <div class="fx-current-event" style="background:var(--ink2)">
+        <div class="fx-current-dot" style="background:rgba(255,255,255,.4)"></div>
+        <div class="fx-current-body">
+          <p class="fx-current-label">Awaiting first update</p>
+          <p class="fx-current-desc">Your shipment has been booked and is being prepared.</p>
+          <p class="fx-current-time">First milestone update scheduled for ${bigDate(futureEvents[0].event_time)}</p>
+        </div>
+      </div>`
+        : "";
 
     /* ── Flags ── */
     const flags = (s.alert_flags || []).filter((f) => f.active);
