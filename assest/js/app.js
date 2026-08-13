@@ -834,7 +834,6 @@
             : ""
         }
         ${currentEventHtml}
-        ${upcomingHtml}
         <div class="fx-body">
           <section class="fx-history-wrap">
             <h3 class="fx-h">Travel history</h3>

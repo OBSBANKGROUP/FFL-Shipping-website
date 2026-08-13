@@ -28,7 +28,7 @@
       { label: "Home", href: "index.html", key: "home" },
       { label: "Services", href: "services.html", key: "services" },
       { label: "Track", href: "tracking.html", key: "tracking" },
-      { label: "About", href: "about.html", key: "about" },
+      { label: "About", href: "About.html", key: "about" },
       { label: "Contact", href: "contact.html", key: "contact" },
     ],
     quoteHref: "quote.html",
