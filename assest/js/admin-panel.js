@@ -4,17 +4,24 @@
   const SK = "ffl_shipments",
     QK = "ffl_quotes";
 
-  /* ── Supabase client (reads from FFL_CONFIG set in config.js) ── */
+  /* ── Supabase client — initialized after all scripts load ── */
   const _cfg = window.FFL_CONFIG || {};
   const _sbOk =
     _cfg.SUPABASE_URL &&
     _cfg.SUPABASE_ANON_KEY &&
     !_cfg.SUPABASE_URL.startsWith("YOUR_") &&
     !_cfg.SUPABASE_ANON_KEY.startsWith("YOUR_");
-  const _sb =
-    _sbOk && window.supabase
-      ? window.supabase.createClient(_cfg.SUPABASE_URL, _cfg.SUPABASE_ANON_KEY)
-      : null;
+
+  function getSupabase() {
+    if (!_sbOk) return null;
+    if (window.supabase && window.supabase.createClient) {
+      return window.supabase.createClient(
+        _cfg.SUPABASE_URL,
+        _cfg.SUPABASE_ANON_KEY,
+      );
+    }
+    return null;
+  }
 
   /* ── Helpers: always mirror to localStorage as cache ── */
   const load = (k) => {
@@ -28,6 +35,7 @@
 
   /* ── Supabase read ── */
   async function sbLoad() {
+    const _sb = getSupabase();
     if (!_sb) return null;
     try {
       const { data, error } = await _sb
@@ -49,24 +57,33 @@
 
   /* ── Supabase write (upsert single shipment) ── */
   async function sbSave(rec) {
+    const _sb = getSupabase();
+    console.log(
+      "[FFL Admin] sbSave called. Supabase ready:",
+      !!_sb,
+      "Config ok:",
+      _sbOk,
+    );
     if (!_sb) return false;
     try {
       const { error } = await _sb
         .from("shipments")
         .upsert(rec, { onConflict: "tracking_number" });
       if (error) {
-        console.warn("Supabase write error:", error.message);
+        console.warn("[FFL Admin] Supabase write error:", error.message, error);
         return false;
       }
+      console.log("[FFL Admin] Supabase write SUCCESS:", rec.tracking_number);
       return true;
     } catch (e) {
-      console.warn("Supabase write failed:", e);
+      console.warn("[FFL Admin] Supabase write failed:", e);
       return false;
     }
   }
 
   /* ── Supabase delete ── */
   async function sbDelete(tn) {
+    const _sb = getSupabase();
     if (!_sb) return false;
     try {
       const { error } = await _sb
@@ -402,6 +419,7 @@
         <div class="ship-actions">
           <button class="btn invoice" data-inv="${esc(s.tracking_number)}">🖨 Invoice</button>
           <button class="btn notify" data-notify="${esc(s.tracking_number)}">📨 Notify</button>
+          <button class="btn" style="background:rgba(42,157,143,.08);border-color:rgba(42,157,143,.3);color:var(--teal)" data-addev="${esc(s.tracking_number)}">📍 Add Event</button>
           <button class="btn" style="background:rgba(214,69,69,.08);border-color:rgba(214,69,69,.3);color:var(--alert)" data-flags="${esc(s.tracking_number)}">🚨 Flags${flags.length ? ` (${flags.length})` : ""}</button>
           <button class="btn update" data-upd="${esc(s.tracking_number)}">✏️ Update</button>
           <a href="tracking.html?track=${encodeURIComponent(s.tracking_number)}" target="_blank" class="btn">Track ↗</a>
@@ -422,6 +440,11 @@
     const ntf = e.target.closest("[data-notify]");
     if (ntf) {
       openNotifModal(ntf.dataset.notify);
+      return;
+    }
+    const aev = e.target.closest("[data-addev]");
+    if (aev) {
+      openAddEventModal(aev.dataset.addev);
       return;
     }
     const flg = e.target.closest("[data-flags]");
@@ -1550,6 +1573,128 @@ Thank you for choosing ${company}.`;
       }
       toast("Notification sent!");
       setTimeout(() => closeNotifModal(), 2200);
+    }
+  });
+
+  /* ════════════════════════════════════════════════════
+     ADD EVENT MODAL
+     Lets admin add tracking milestones to any existing
+     shipment directly from the dashboard. Events with
+     future times are hidden from customers until reached.
+  ════════════════════════════════════════════════════ */
+  let addEvTN = null;
+
+  function openAddEventModal(tn) {
+    addEvTN = tn;
+    $("addEvModalTN").textContent = tn;
+    $("addEvTime").value = "";
+    $("addEvLocation").value = "";
+    $("addEvDesc").value = "";
+    $("addEvStatus").value = "";
+    $("addEvError").style.display = "none";
+
+    /* Set default datetime to now */
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    $("addEvTime").value = now.toISOString().slice(0, 16);
+
+    /* Show existing events for context */
+    const ship = load(SK).find((s) => s.tracking_number === tn);
+    const evts = ((ship && ship.tracking_events) || [])
+      .slice()
+      .sort((a, b) => new Date(b.event_time) - new Date(a.event_time))
+      .slice(0, 5);
+    $("addEvHistory").innerHTML = evts.length
+      ? evts
+          .map((e) => {
+            const isPast = new Date(e.event_time).getTime() <= Date.now();
+            return `<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px;align-items:start">
+            <span style="color:var(--muted);white-space:nowrap;min-width:110px">${fDT(e.event_time)}</span>
+            <span style="flex:1;color:var(--ink2)">${esc(e.location ? e.location + " — " : "")}${esc(e.description)}</span>
+            <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;${isPast ? "background:rgba(42,157,143,.12);color:var(--teal)" : "background:rgba(242,161,4,.12);color:var(--amber-dk)"}">${isPast ? "Live" : "Scheduled"}</span>
+          </div>`;
+          })
+          .join("")
+      : '<p style="color:var(--muted);font-size:13px;padding:8px 0">No events yet.</p>';
+
+    $("addEvModal").classList.add("open");
+    setTimeout(() => $("addEvDesc").focus(), 100);
+  }
+
+  $("addEvSave").addEventListener("click", async () => {
+    const time = $("addEvTime").value;
+    const loc = $("addEvLocation").value.trim();
+    const desc = $("addEvDesc").value.trim();
+    const newStatus = $("addEvStatus").value;
+    const errEl = $("addEvError");
+
+    if (!time) {
+      errEl.textContent = "Please set a date and time for this event.";
+      errEl.style.display = "block";
+      return;
+    }
+    if (!desc) {
+      errEl.textContent = "Please enter a description for this event.";
+      errEl.style.display = "block";
+      return;
+    }
+    errEl.style.display = "none";
+
+    const all = load(SK);
+    const ship = all.find((s) => s.tracking_number === addEvTN);
+    if (!ship) {
+      $("addEvModal").classList.remove("open");
+      return;
+    }
+
+    /* Add the new event */
+    if (!ship.tracking_events) ship.tracking_events = [];
+    ship.tracking_events.push({
+      event_time: new Date(time).toISOString(),
+      location: loc,
+      description: desc,
+    });
+
+    /* Optionally update status */
+    if (newStatus) ship.status = newStatus;
+
+    /* Sort events by time */
+    ship.tracking_events.sort(
+      (a, b) => new Date(a.event_time) - new Date(b.event_time),
+    );
+
+    /* Save locally */
+    save(SK, all);
+
+    /* Save to Supabase */
+    $("addEvSave").disabled = true;
+    $("addEvSave").textContent = "Saving…";
+    const ok = await sbSave(ship);
+
+    $("addEvSave").disabled = false;
+    $("addEvSave").textContent = "Add event";
+    $("addEvModal").classList.remove("open");
+    addEvTN = null;
+
+    const isPast = new Date(time).getTime() <= Date.now();
+    toast(
+      ok
+        ? `✓ Event added to ${ship.tracking_number}${isPast ? " — visible to customer now" : " — scheduled for " + fDT(new Date(time).toISOString())}`
+        : `Event saved locally (Supabase offline)`,
+    );
+
+    refreshDash();
+    if (typeof patchedRefresh === "function") setTimeout(patchedRefresh, 200);
+  });
+
+  $("addEvCancel").addEventListener("click", () => {
+    $("addEvModal").classList.remove("open");
+    addEvTN = null;
+  });
+  $("addEvModal").addEventListener("click", (e) => {
+    if (e.target === $("addEvModal")) {
+      $("addEvModal").classList.remove("open");
+      addEvTN = null;
     }
   });
 

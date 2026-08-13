@@ -3761,6 +3761,130 @@
       </div>
     </div>
 
+    <!-- ADD EVENT MODAL -->
+    <div class="modal-backdrop" id="addEvModal" style="z-index: 310">
+      <div class="modal" style="max-width: 560px">
+        <div class="modal-head">
+          <h3>📍 Add Tracking Event</h3>
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span class="modal-tn" id="addEvModalTN">—</span>
+            <button class="modal-close" id="addEvCancel">✕</button>
+          </div>
+        </div>
+
+        <div class="modal-fields">
+          <div class="mfield">
+            <label
+              >Date &amp; time <span style="color: var(--alert)">*</span>
+              <span
+                style="font-size: 11px; font-weight: 400; color: var(--muted)"
+                >— past = visible now, future = shows automatically when
+                reached</span
+              >
+            </label>
+            <input type="datetime-local" id="addEvTime" />
+          </div>
+          <div class="mfield">
+            <label>Location</label>
+            <input
+              type="text"
+              id="addEvLocation"
+              placeholder="e.g. Umm Qasr Port, IQ — Gate 3"
+            />
+          </div>
+          <div class="mfield">
+            <label
+              >Description <span style="color: var(--alert)">*</span></label
+            >
+            <textarea
+              id="addEvDesc"
+              style="min-height: 80px"
+              placeholder="e.g. Cargo loaded and vessel departed port of origin"
+            ></textarea>
+          </div>
+          <div class="mfield">
+            <label
+              >Also update shipment status
+              <span style="color: var(--muted); font-weight: 400"
+                >(optional)</span
+              ></label
+            >
+            <select id="addEvStatus">
+              <option value="">— keep current status —</option>
+              <option value="booked">Booked</option>
+              <option value="invoice_issued">Invoice Issued</option>
+              <option value="preparing_dispatch">Preparing for Dispatch</option>
+              <option value="in_warehouse">In Warehouse</option>
+              <option value="in_transit">In Transit</option>
+              <option value="customs">Customs Clearance</option>
+              <option value="out_for_delivery">Out for Delivery</option>
+              <option value="distribution">Distribution</option>
+              <option value="delivered">Delivered</option>
+              <option value="on_hold">ON HOLD ⚠️</option>
+              <option value="delayed">Delayed</option>
+              <option value="exception">Exception</option>
+            </select>
+          </div>
+        </div>
+
+        <div
+          id="addEvError"
+          style="
+            display: none;
+            background: rgba(214, 69, 69, 0.1);
+            border: 1px solid rgba(214, 69, 69, 0.3);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: var(--alert);
+            margin-top: 12px;
+          "
+        ></div>
+
+        <div class="modal-actions" style="margin-top: 16px">
+          <button
+            class="modal-save"
+            id="addEvSave"
+            style="background: var(--teal)"
+          >
+            Add event
+          </button>
+          <button
+            class="modal-cancel"
+            id="addEvCancel2"
+            onclick="
+              document.getElementById('addEvModal').classList.remove('open')
+            "
+          >
+            Cancel
+          </button>
+        </div>
+
+        <!-- Recent events for context -->
+        <div
+          style="
+            margin-top: 18px;
+            border-top: 1px dashed var(--line);
+            padding-top: 14px;
+          "
+        >
+          <p
+            style="
+              font-size: 11px;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.6px;
+              color: var(--muted);
+              margin-bottom: 8px;
+            "
+          >
+            Recent events on this shipment
+          </p>
+          <div id="addEvHistory"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ALERT FLAGS MODAL -->
     <div class="flags-modal-backdrop" id="flagsModal">
       <div class="flags-modal">
