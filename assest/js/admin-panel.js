@@ -986,9 +986,33 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
       evTime = ev.event_time ? new Date(ev.event_time).getTime() : null;
     const state = evTime ? (evTime <= nowMs ? "live" : "pending") : "pending";
     d.classList.add(state);
-    d.innerHTML = `<input type="datetime-local" class="ev-time" value="${toInp(ev.event_time)}" placeholder="Date &amp; time"/>
-      <input type="text" class="ev-loc" placeholder="Location" value="${esc(ev.location || "")}"/>
-      <input type="text" class="ev-desc" placeholder="Description" value="${esc(ev.description || "")}"/>
+    const statusOpts = [
+      ["", "— no status change —"],
+      ["booked", "Booked"],
+      ["invoice_issued", "Invoice Issued"],
+      ["preparing_dispatch", "Preparing for Dispatch"],
+      ["in_warehouse", "In Warehouse"],
+      ["in_transit", "In Transit"],
+      ["customs", "Customs Clearance"],
+      ["out_for_delivery", "Out for Delivery"],
+      ["distribution", "Distribution"],
+      ["delivered", "Delivered"],
+      ["on_hold", "ON HOLD ⚠️"],
+      ["delayed", "Delayed"],
+      ["exception", "Exception"],
+    ]
+      .map(
+        ([v, l]) =>
+          `<option value="${v}"${ev.status === v ? " selected" : ""}>${l}</option>`,
+      )
+      .join("");
+    d.innerHTML = `
+      <input type="datetime-local" class="ev-time" value="${toInp(ev.event_time)}" placeholder="Date &amp; time"/>
+      <input type="text" class="ev-loc" placeholder="Location (e.g. Dubai, AE)" value="${esc(ev.location || "")}"/>
+      <input type="text" class="ev-desc" placeholder="Description (e.g. Departed origin port)" value="${esc(ev.description || "")}"/>
+      <select class="ev-status" style="padding:8px 10px;border:1.5px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px;background:var(--white);color:var(--ink);min-width:0">
+        ${statusOpts}
+      </select>
       <button type="button" class="ev-del" title="Remove">✕</button>`;
     d.querySelector(".ev-time").addEventListener("change", function () {
       const t = this.value ? new Date(this.value).getTime() : null;
@@ -1005,6 +1029,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
           toISO(r.querySelector(".ev-time").value) || new Date().toISOString(),
         location: r.querySelector(".ev-loc").value.trim(),
         description: r.querySelector(".ev-desc").value.trim(),
+        status: r.querySelector(".ev-status")?.value || "",
       }))
       .filter((e) => e.description);
   }
@@ -1153,7 +1178,7 @@ table.cargo tr:nth-child(even) td{background:#fafcff}
     const rec = {
       tracking_number: tn,
       mode: fv("mode"),
-      status: fv("status"),
+      status: finalStatus || fv("status"),
       origin_port: fv("origin_port"),
       destination_port: fv("destination_port"),
       shipper_contact: fv("shipper_contact"),

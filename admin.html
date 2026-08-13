@@ -1030,7 +1030,7 @@
       }
       .ev-row {
         display: grid;
-        grid-template-columns: 185px 1fr 1.4fr auto;
+        grid-template-columns: 175px 1fr 1.4fr 160px auto;
         gap: 8px;
         align-items: center;
         background: rgba(22, 50, 74, 0.03);
@@ -1072,6 +1072,20 @@
       }
       .ev-del:hover {
         background: rgba(214, 69, 69, 0.22);
+      }
+      @media (max-width: 900px) {
+        .ev-row {
+          grid-template-columns: 1fr 1fr;
+          gap: 6px;
+        }
+        .ev-row input[type="datetime-local"] {
+          grid-column: 1/-1;
+        }
+      }
+      @media (max-width: 520px) {
+        .ev-row {
+          grid-template-columns: 1fr;
+        }
       }
       .ev-hint {
         font-size: 12px;
