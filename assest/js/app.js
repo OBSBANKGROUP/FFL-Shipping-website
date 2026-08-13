@@ -589,23 +589,42 @@
 
   /* ── Render tracking result ── */
   function render(s) {
-    const st = STATUS[s.status] || STATUS.booked;
+    const nowMs = Date.now();
     const isAir = s.mode === "air";
+
+    /* ── Split events into past (visible) and future (hidden) ── */
+    const allEvents = (s.tracking_events || [])
+      .slice()
+      .sort((a, b) => new Date(a.event_time) - new Date(b.event_time));
+
+    const pastEvents = allEvents.filter(
+      (e) => new Date(e.event_time).getTime() <= nowMs,
+    );
+    const futureEvents = allEvents.filter(
+      (e) => new Date(e.event_time).getTime() > nowMs,
+    );
+
+    /* ── Derive live status from events ──────────────────────────
+       Logic:
+       • The CURRENT event is the most recent past event that has a status.
+       • If no event has a status yet, fall back to the shipment's stored status.
+       • Future events are completely hidden from the customer.
+    ──────────────────────────────────────────────────────────── */
+    const pastEventsDesc = [...pastEvents].reverse(); // newest first
+    const currentEvt = pastEventsDesc[0] || null; // most recent visible event
+    const lastStatusEvt = pastEventsDesc.find((e) => e.status); // last event with a status set
+    const liveStatus = lastStatusEvt ? lastStatusEvt.status : s.status;
+
+    const st = STATUS[liveStatus] || STATUS.booked;
     const isDone = st.tone === "done";
     const isAlert = st.tone === "alert";
     const isHold = st.tone === "hold";
 
-    const nowMs = Date.now();
-    const events = (s.tracking_events || [])
-      .filter((e) => new Date(e.event_time).getTime() <= nowMs)
-      .sort((a, b) => new Date(b.event_time) - new Date(a.event_time));
-    const latest = events[0];
-
-    /* Headline */
+    /* ── Headline ── */
     let hLabel, hDate;
     if (isDone) {
       hLabel = "Delivered";
-      hDate = bigDate(latest ? latest.event_time : s.eta);
+      hDate = bigDate(currentEvt ? currentEvt.event_time : s.eta);
     } else if (isHold) {
       hLabel = "Shipment on hold";
       hDate = bigDate(s.eta);
@@ -616,11 +635,27 @@
       hLabel = "Estimated delivery";
       hDate = bigDate(s.eta);
     }
-    const subLine =
-      esc(st.label) +
-      esc(latest && latest.location ? " · " + latest.location : "");
 
-    /* Flags */
+    /* Current location — from the most recent past event */
+    const currentLocation = currentEvt ? currentEvt.location || "" : "";
+    const subLine =
+      esc(st.label) + (currentLocation ? " · " + esc(currentLocation) : "");
+
+    /* ── Current event highlight box ── */
+    const currentEventHtml = currentEvt
+      ? `
+      <div class="fx-current-event">
+        <div class="fx-current-dot"></div>
+        <div class="fx-current-body">
+          <p class="fx-current-label">Current status</p>
+          <p class="fx-current-desc">${esc(currentEvt.description)}</p>
+          ${currentEvt.location ? `<p class="fx-current-loc">📍 ${esc(currentEvt.location)}</p>` : ""}
+          <p class="fx-current-time">${bigDate(currentEvt.event_time)} at ${timeOf(currentEvt.event_time)}</p>
+        </div>
+      </div>`
+      : "";
+
+    /* ── Flags ── */
     const flags = (s.alert_flags || []).filter((f) => f.active);
     const flagStages = flags.map((f, i) => ({
       key: "flag_" + i,
@@ -655,7 +690,7 @@
         ]
           .join(" ")
           .trim();
-        let iconHtml = isFlag ? stage.flagIcon : stageIcon(stage.key, isAir);
+        const iconHtml = isFlag ? stage.flagIcon : stageIcon(stage.key, isAir);
         const style = isFlag ? `--flag-color:${stage.flagColor}` : "";
         return `<li class="fx-stage${isFlag ? " fx-stage-flag" : ""} ${cls}" style="${style}">
         <span class="fx-ic">${iconHtml}</span>
@@ -666,29 +701,33 @@
 
     const pct = (activeIdx / (fullStages.length - 1)) * 100;
 
-    /* Travel history */
-    const groups = [],
+    /* ── Travel history — only past events, newest first ── */
+    const histGroups = [],
       byDay = new Map();
-    events.forEach((e) => {
+    /* Show past events newest first for the history list */
+    const histEvents = [...pastEvents].reverse();
+    histEvents.forEach((e) => {
       const k = dayKey(e.event_time);
       if (!byDay.has(k)) {
         byDay.set(k, []);
-        groups.push(k);
+        histGroups.push(k);
       }
       byDay.get(k).push(e);
     });
     const historyHtml =
-      groups
+      histGroups
         .map((k) => {
           const rows = byDay
             .get(k)
             .map((e) => {
-              const isCurrent = latest && e.event_time === latest.event_time;
+              const isCurrent =
+                currentEvt && e.event_time === currentEvt.event_time;
               return `<div class="fx-evt ${isCurrent ? "current" : ""}">
           <div class="fx-evt-time">${timeOf(e.event_time)}</div>
           <div class="fx-evt-main">
             <p class="fx-evt-desc">${esc(e.description)}</p>
             ${e.location ? `<p class="fx-evt-loc">${esc(e.location)}</p>` : ""}
+            ${e.status ? `<span class="fx-evt-status-badge">${esc(STATUS[e.status]?.label || e.status)}</span>` : ""}
           </div>
         </div>`;
             })
@@ -697,6 +736,15 @@
         })
         .join("") || `<p class="fx-empty">No tracking events yet.</p>`;
 
+    /* ── Upcoming events notice (visible count only, no details) ── */
+    const upcomingHtml = futureEvents.length
+      ? `
+      <div class="fx-upcoming">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        ${futureEvents.length} upcoming milestone${futureEvents.length > 1 ? "s" : ""} scheduled — updates will appear automatically
+      </div>`
+      : "";
+
     /* Alert flags notice */
     const flagsNoticeHtml = flags.length
       ? `
@@ -704,10 +752,9 @@
         ${flags
           .map((f) => {
             const ft = FLAG_TYPES[f.type] || FLAG_TYPES.custom;
-            const label = f.custom_label || ft.label;
             return `<div class="fx-flag-item" style="--fc:${ft.color}">
             <span class="fx-flag-ic">${ft.icon}</span>
-            <div><p class="fx-flag-title">${esc(label)}</p>${f.note ? `<p class="fx-flag-note">${esc(f.note)}</p>` : ""}</div>
+            <div><p class="fx-flag-title">${esc(f.custom_label || ft.label)}</p>${f.note ? `<p class="fx-flag-note">${esc(f.note)}</p>` : ""}</div>
           </div>`;
           })
           .join("")}
@@ -760,11 +807,7 @@
           isHold
             ? `
         <div class="fx-hold-banner">
-          <div class="fx-hold-icon">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
-              <path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
+          <div class="fx-hold-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <div>
             <p class="fx-hold-title">⚠️ Your shipment is currently ON HOLD</p>
             <p class="fx-hold-msg">Your shipment requires attention and has been placed on hold. Please contact our team immediately to resolve this.</p>
@@ -773,6 +816,8 @@
         </div>`
             : ""
         }
+        ${currentEventHtml}
+        ${upcomingHtml}
         <div class="fx-body">
           <section class="fx-history-wrap">
             <h3 class="fx-h">Travel history</h3>

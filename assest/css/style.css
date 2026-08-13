@@ -4133,3 +4133,76 @@ nav a,
     opacity: 0.55;
   }
 }
+
+/* ── Current event highlight box ── */
+.fx-current-event {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--ink);
+  color: #fff;
+  border-radius: var(--r);
+  padding: 18px 20px;
+  margin: 0 0 4px;
+}
+.fx-current-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+  margin-top: 4px;
+  animation: pulse-ring 2s infinite;
+}
+.fx-current-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--amber);
+  margin-bottom: 4px;
+}
+.fx-current-desc {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.fx-current-loc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 4px;
+}
+.fx-current-time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── Upcoming events notice ── */
+.fx-upcoming {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(42, 157, 143, 0.08);
+  border: 1px solid rgba(42, 157, 143, 0.25);
+  border-radius: var(--r-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--teal);
+  margin: 4px 0;
+}
+
+/* ── Event status badge in travel history ── */
+.fx-evt-status-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  background: rgba(42, 157, 143, 0.12);
+  color: var(--teal);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
