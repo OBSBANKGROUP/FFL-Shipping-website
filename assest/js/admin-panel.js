@@ -662,237 +662,301 @@
       hand = parseFloat(s.charge_handling) || 0,
       total = ship + hand;
     const now = new Date();
-    const issuedFull =
-      now.toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }) +
-      " " +
-      now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-    const orderNum =
-      s.tracking_number.replace(/[^0-9]/g, "") ||
-      Math.floor(Math.random() * 9000 + 1000);
+    const issuedFull = now.toLocaleDateString("en-US", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+    const issuedShort = now.toLocaleDateString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+    });
     const modeLabel =
       s.mode === "air"
         ? "Air Freight"
         : s.mode === "road"
           ? "Road / Rail"
           : "Ocean Freight";
-    const statusColor =
-      s.status === "delivered"
+    const statusColor = ["delayed", "exception", "on_hold"].includes(s.status)
+      ? "#c0392b"
+      : s.status === "delivered"
         ? "#1a7a4a"
-        : ["delayed", "exception", "on_hold"].includes(s.status)
-          ? "#c0392b"
-          : [
-                "in_transit",
-                "customs",
-                "out_for_delivery",
-                "distribution",
-              ].includes(s.status)
-            ? "#1a5276"
-            : "#1a6b2a";
+        : "#1a5276";
     const USD = (n) =>
-      n > 0
-        ? "USD " +
-          Number(n).toLocaleString("en-US", { minimumFractionDigits: 2 })
-        : "USD 0.00";
+      "USD " +
+      Number(n || 0).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
     const seed = tn.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-    const barcodeStripes = Array.from(
+    const bars = Array.from(
       { length: 52 },
       (_, i) =>
-        `<div style="width:${((seed * i * 7 + i * 13) % 3) + 1}px;background:#000;flex-shrink:0"></div>`,
+        `<div style="width:${((seed * (i + 1) * 3) % 3) + 1}px;background:#111;flex-shrink:0;height:100%"></div>`,
     ).join("");
-    const eventsHtml = (s.tracking_events || []).length
-      ? `
-      <table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr>
-        <th style="background:#f0f4f8;padding:6px 8px;text-align:left;color:#1a5276;border:1px solid #d5e8f0;text-transform:uppercase;letter-spacing:.5px">Date / Time</th>
-        <th style="background:#f0f4f8;padding:6px 8px;text-align:left;color:#1a5276;border:1px solid #d5e8f0;text-transform:uppercase;letter-spacing:.5px">Location</th>
-        <th style="background:#f0f4f8;padding:6px 8px;text-align:left;color:#1a5276;border:1px solid #d5e8f0;text-transform:uppercase;letter-spacing:.5px">Update</th>
-      </tr></thead><tbody>
-      ${(s.tracking_events || [])
-        .slice()
-        .sort((a, b) => new Date(a.event_time) - new Date(b.event_time))
-        .map(
-          (e, i) =>
-            `<tr style="background:${i % 2 ? "#fafcfe" : "#fff"}">
-          <td style="padding:6px 8px;border:1px solid #e8f0f5;white-space:nowrap">${fDT(e.event_time)}</td>
-          <td style="padding:6px 8px;border:1px solid #e8f0f5">${esc(e.location || "—")}</td>
-          <td style="padding:6px 8px;border:1px solid #e8f0f5">${esc(e.description)}</td>
-        </tr>`,
-        )
-        .join("")}
-      </tbody></table>`
-      : '<p style="color:#7f8c8d;font-size:12px">No tracking events yet.</p>';
+    const nowMs = Date.now();
+    const pastEvts = (s.tracking_events || [])
+      .filter((e) => new Date(e.event_time).getTime() <= nowMs)
+      .sort((a, b) => new Date(a.event_time) - new Date(b.event_time));
+    const eventsHtml = pastEvts.length
+      ? pastEvts
+          .map(
+            (e, i) => `
+      <tr><td style="padding:4px 7px;border:1px solid #dde;white-space:nowrap;font-size:9px;background:${i % 2 ? "#fafcfe" : "#fff"}">${fDT(e.event_time)}</td>
+      <td style="padding:4px 7px;border:1px solid #dde;font-size:9px;background:${i % 2 ? "#fafcfe" : "#fff"}">${esc(e.location || "—")}</td>
+      <td style="padding:4px 7px;border:1px solid #dde;font-size:9px;background:${i % 2 ? "#fafcfe" : "#fff"}">${esc(e.description)}</td></tr>`,
+          )
+          .join("")
+      : `<tr><td colspan="3" style="padding:6px;color:#aaa;font-size:9px">No events recorded yet.</td></tr>`;
+
+    /* ── COMPANY STAMP — teal circular, curved text, ® centre, diagonal signature lines ── */
+    const companyStamp = `<svg viewBox="0 0 180 180" width="138" height="138" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <path id="topCurve" d="M 20,90 A 70,70 0 0,1 160,90"/>
+        <path id="botCurve" d="M 30,105 A 60,60 0 0,0 150,105"/>
+      </defs>
+      <!-- Outer double ring -->
+      <circle cx="90" cy="90" r="85" fill="none" stroke="#1a6b8a" stroke-width="3.5"/>
+      <circle cx="90" cy="90" r="77" fill="none" stroke="#1a6b8a" stroke-width="1"/>
+      <!-- Top curved text -->
+      <text font-size="10.5" font-weight="900" fill="#1a6b8a" font-family="Arial,sans-serif" letter-spacing="2.5">
+        <textPath href="#topCurve" startOffset="3%">FAST FORWARD LOGISTICS</textPath>
+      </text>
+      <!-- Bottom curved text -->
+      <text font-size="9" font-weight="700" fill="#1a6b8a" font-family="Arial,sans-serif" letter-spacing="2">
+        <textPath href="#botCurve" startOffset="12%">ERBIL · IRAQ · EST. 2009</textPath>
+      </text>
+      <!-- Stars at bottom -->
+      <text x="90" y="168" text-anchor="middle" font-size="8" fill="#1a6b8a" font-family="Arial" letter-spacing="5">★ ★ ★ ★</text>
+      <!-- Inner circle -->
+      <circle cx="90" cy="80" r="26" fill="none" stroke="#1a6b8a" stroke-width="1.5"/>
+      <!-- ® symbol -->
+      <text x="90" y="73" text-anchor="middle" font-size="11" font-weight="900" fill="#1a6b8a" font-family="Arial">®</text>
+      <!-- FFL initials -->
+      <text x="90" y="95" text-anchor="middle" font-size="11" font-weight="900" fill="#1a6b8a" font-family="Arial">FFL</text>
+      <!-- Signature line -->
+      <line x1="32" y1="128" x2="148" y2="128" stroke="#1a6b8a" stroke-width="0.8" stroke-dasharray="1,1"/>
+      <!-- Realistic crossed signature strokes -->
+      <path d="M 36,125 C 48,116 54,130 66,121 C 75,114 80,126 92,118 C 101,112 108,124 122,117 C 130,113 136,122 146,118"
+        fill="none" stroke="#1a6b8a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M 38,128 C 52,119 62,132 74,122 C 84,115 90,128 104,120"
+        fill="none" stroke="#1a6b8a" stroke-width="0.9" stroke-linecap="round" opacity="0.5"/>
+      <!-- Diagonal lines across stamp like reference photo -->
+      <line x1="20" y1="55" x2="60" y2="10" stroke="#1a6b8a" stroke-width="0.6" opacity="0.35"/>
+      <line x1="30" y1="65" x2="72" y2="12" stroke="#1a6b8a" stroke-width="0.6" opacity="0.25"/>
+      <line x1="42" y1="70" x2="88" y2="14" stroke="#1a6b8a" stroke-width="0.6" opacity="0.2"/>
+    </svg>`;
+
+    /* ── STAMP DUTY — red circular exactly like photo ── */
+    const dutyStamp = `<svg viewBox="0 0 160 160" width="115" height="115" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <path id="dutyTop" d="M 15,80 A 65,65 0 0,1 145,80"/>
+        <path id="dutyBot" d="M 22,95 A 58,58 0 0,0 138,95"/>
+      </defs>
+      <!-- Double outer ring -->
+      <circle cx="80" cy="80" r="76" fill="none" stroke="#c0392b" stroke-width="4"/>
+      <circle cx="80" cy="80" r="68" fill="none" stroke="#c0392b" stroke-width="1"/>
+      <!-- Stars top -->
+      <text x="80" y="18" text-anchor="middle" font-size="8" fill="#c0392b" letter-spacing="5" font-family="Arial">★ ★ ★ ★ ★</text>
+      <!-- Stars bottom -->
+      <text x="80" y="149" text-anchor="middle" font-size="8" fill="#c0392b" letter-spacing="5" font-family="Arial">★ ★ ★ ★ ★</text>
+      <!-- Centre text STAMP DUTY -->
+      <text x="80" y="66" text-anchor="middle" font-size="17" font-weight="900" fill="#c0392b" font-family="Arial" letter-spacing="1">STAMP</text>
+      <text x="80" y="87" text-anchor="middle" font-size="17" font-weight="900" fill="#c0392b" font-family="Arial" letter-spacing="1">DUTY</text>
+      <!-- Divider line -->
+      <line x1="28" y1="95" x2="132" y2="95" stroke="#c0392b" stroke-width="1.2"/>
+      <!-- Date -->
+      <text x="80" y="110" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c0392b" font-family="Arial" letter-spacing=".5">${issuedShort}</text>
+    </svg>`;
 
     const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <title>Invoice — ${esc(tn)}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,Helvetica,sans-serif;background:#e8f4f0;min-height:100vh;padding:24px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.page{background:#fff;max-width:800px;margin:0 auto;border:1px solid #c8ddd8;overflow:hidden;position:relative}
-.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:72px;font-weight:900;color:rgba(11,31,51,.05);text-transform:uppercase;letter-spacing:12px;white-space:nowrap;pointer-events:none;z-index:0}
-.content{position:relative;z-index:1;padding:28px 32px}
-.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
-.logo-img{height:64px;width:auto;object-fit:contain}
-.logo-fallback{display:none;align-items:center;gap:10px}
-.logo-icon{width:54px;height:54px;background:#0B1F33;border-radius:10px;display:flex;align-items:center;justify-content:center}
-.logo-icon svg{width:30px;height:30px;color:#F2A104}
-.logo-name{font-size:20px;font-weight:900;color:#0B1F33;text-transform:uppercase}
-.logo-name span{color:#F2A104}
-.tn-headline{font-size:17px;font-weight:900;color:#c0392b;margin-top:6px}
-.photo-box{width:110px;height:110px;border:1.5px solid #c8ddd8;border-radius:4px;display:flex;align-items:center;justify-content:center;background:#f8fffe;flex-shrink:0;font-size:9px;color:#aaa;text-align:center}
-.company-band{text-align:center;padding:14px 20px;margin-bottom:20px}
-.company-band p{font-size:13px;font-weight:700;color:#1a5276;line-height:1.7}
-.parties-row{display:flex;gap:0;margin-bottom:20px;align-items:flex-start}
-.party{flex:1;padding:12px 0}
-.party-label{font-size:10px;font-weight:700;color:#1a5276;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
-.party-name{font-size:17px;font-weight:900;color:#1a7a4a;margin-bottom:4px}
-.party-line{font-size:12px;color:#2c3e50;margin-bottom:2px;line-height:1.5}
-.party-line strong{font-weight:700}
-.barcode-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;padding:0 16px;flex-shrink:0}
-.barcode-bars{display:flex;gap:1.5px;height:50px;align-items:stretch;padding:4px 8px;background:#fff;border:1px solid #eee}
-.barcode-num{font-size:10px;font-weight:700;letter-spacing:1px;color:#2c3e50;font-family:monospace}
-.order-row{display:flex;gap:6px;margin-bottom:3px;font-size:12px}
-.order-key{font-weight:700;color:#2c3e50;min-width:100px}
-.mode-pill{display:inline-block;background:#1a5276;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase}
-.sec-title{font-size:10px;font-weight:700;color:#1a5276;letter-spacing:1px;text-transform:uppercase;margin:18px 0 8px;padding-top:14px;border-top:1px solid #e0ecf4}
-table.cargo{width:100%;border-collapse:collapse;margin-bottom:6px}
-table.cargo th{background:#1a5276;color:#fff;font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:8px 10px;text-align:left}
-table.cargo td{padding:9px 10px;font-size:12px;border-bottom:1px solid #e8f0f5;color:#2c3e50;vertical-align:top}
-table.cargo tr:nth-child(even) td{background:#fafcff}
-.status-pill{display:inline-block;padding:3px 9px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;color:#fff;background:${statusColor}}
-.bottom-row{display:flex;gap:20px;margin-top:20px;padding-top:18px;border-top:1px solid #e0ecf4;align-items:flex-start}
-.pay-box{flex:1}
-.pay-title{font-size:12px;font-weight:700;color:#2c3e50;margin-bottom:8px}
-.pay-icons{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-.pay-icon{background:#f5f5f5;border:1px solid #e0e0e0;border-radius:4px;padding:4px 10px;font-size:11px;font-weight:700;color:#2c3e50}
-.secure-badge{background:#e8f4ee;border:1px solid #b8ddc8;border-radius:4px;padding:6px 10px;font-size:10px;color:#1a6b3a;font-weight:600}
-.stamp-col{flex:1;text-align:center}
-.stamp-date{font-size:12px;font-weight:700;color:#2c3e50;margin-bottom:8px}
-.stamp-circle{width:80px;height:80px;border-radius:50%;border:3px solid #1a5276;display:flex;align-items:center;justify-content:center;margin:0 auto;background:#fff}
-.stamp-inner{text-align:center}
-.stamp-inner .s1{font-size:7px;font-weight:900;color:#1a5276;letter-spacing:1px;text-transform:uppercase}
-.stamp-inner .s2{font-size:11px;font-weight:900;color:#1a5276;font-style:italic;margin:2px 0}
-.stamp-inner .s3{font-size:6px;color:#1a5276;letter-spacing:.5px}
-.duty-col{flex:0 0 140px;text-align:center}
-.duty-title{font-size:12px;font-weight:700;color:#2c3e50;margin-bottom:8px}
-.duty-stamp{width:80px;height:80px;border-radius:50%;border:3px dashed #c0392b;display:flex;align-items:center;justify-content:center;margin:0 auto;background:#fff4f4}
-.duty-stamp span{font-size:9px;font-weight:900;color:#c0392b;text-transform:uppercase;letter-spacing:1px;text-align:center;line-height:1.3}
-.amount-section{margin-top:20px;padding-top:16px;border-top:1px solid #e0ecf4}
-.amount-title{font-size:14px;font-weight:900;color:#2c3e50;margin-bottom:12px}
-.amount-row{display:flex}
-.amount-col{flex:1;padding:10px 14px;background:#f8fafc;border:1px solid #e0ecf4;margin-right:-1px}
-.amount-col:last-child{margin-right:0;background:#1a5276}
-.a-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#7a8a99;margin-bottom:4px}
-.amount-col:last-child .a-label{color:rgba(255,255,255,.7)}
-.a-val{font-size:16px;font-weight:900;color:#2c3e50}
-.amount-col:last-child .a-val{color:#fff}
-.inv-footer{text-align:center;font-size:10px;color:#7a8a99;padding:14px 20px;background:#f8fafc;border-top:1px solid #e0ecf4;margin-top:20px}
-.print-bar{max-width:800px;margin:0 auto 16px;display:flex;gap:10px}
-.print-bar button{padding:10px 22px;border-radius:8px;border:0;font-size:14px;font-weight:700;cursor:pointer}
-.btn-print{background:#1a5276;color:#fff}.btn-close{background:#e0e0e0;color:#333}
-@media print{body{background:#fff!important;padding:0!important}.print-bar{display:none!important}.page{border:none!important}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
+@page{size:A4 portrait;margin:10mm 12mm}
+body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#1a2a3a;background:#fff;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;line-height:1.35}
+.print-bar{padding:8px 14px;background:#1a5276;display:flex;gap:8px;align-items:center;position:sticky;top:0;z-index:100}
+.print-bar button{padding:7px 16px;border-radius:5px;border:0;font-size:12px;font-weight:700;cursor:pointer}
+.btn-print{background:#F2A104;color:#0B1F33}.btn-close{background:rgba(255,255,255,.18);color:#fff}
+.page{max-width:794px;margin:0 auto;padding:16px 20px;background:#fff;position:relative}
+.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);
+  font-size:60px;font-weight:900;color:rgba(26,82,118,.035);text-transform:uppercase;
+  letter-spacing:8px;white-space:nowrap;pointer-events:none;z-index:0}
+.content{position:relative;z-index:1}
+
+/* Header */
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;
+  border-bottom:3px solid #1a5276;padding-bottom:10px;margin-bottom:10px;gap:10px}
+.logo-img{height:48px;width:auto;object-fit:contain}
+.hdr-right{text-align:right}
+.inv-title{font-size:20px;font-weight:900;color:#1a5276;text-transform:uppercase;letter-spacing:2px}
+.inv-sub{font-size:9px;color:#7a8a99;margin-top:1px}
+.inv-num{font-size:11px;font-weight:700;color:#c0392b;margin-top:3px;font-family:monospace}
+.inv-date{font-size:9px;color:#7a8a99;margin-top:1px}
+
+/* Company band */
+.co-band{background:#1a5276;color:#fff;text-align:center;padding:6px 10px;margin-bottom:10px}
+.co-band .co-name{font-size:12px;font-weight:900;letter-spacing:.5px;margin-bottom:2px}
+.co-band .co-info{font-size:8.5px;color:rgba(255,255,255,.85);line-height:1.6}
+
+/* Parties */
+.parties{display:grid;grid-template-columns:1fr 1fr auto;border:1px solid #cce;margin-bottom:10px}
+.party{padding:8px 10px;border-right:1px solid #cce}
+.party:last-child{border-right:none;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 10px}
+.p-label{font-size:7.5px;font-weight:900;color:#1a5276;letter-spacing:1.5px;text-transform:uppercase;
+  background:#e8f4f8;display:inline-block;padding:1px 5px;border-radius:2px;margin-bottom:4px}
+.p-name{font-size:12px;font-weight:900;color:#1a5276;margin-bottom:2px}
+.p-line{font-size:9px;color:#2c3e50;line-height:1.5}
+.barcode-bars{display:flex;gap:1px;height:38px;align-items:stretch;padding:2px 4px;background:#fff;border:1px solid #eee}
+.barcode-num{font-size:8px;font-weight:700;letter-spacing:.5px;color:#2c3e50;font-family:monospace;text-align:center;margin-top:2px}
+
+/* Tables */
+.sec-title{font-size:8.5px;font-weight:900;color:#fff;letter-spacing:1px;text-transform:uppercase;
+  background:#1a5276;padding:4px 8px;margin:8px 0 0}
+table{width:100%;border-collapse:collapse}
+table th{background:#d5e8f4;color:#1a5276;font-size:8px;font-weight:900;letter-spacing:.5px;
+  text-transform:uppercase;padding:5px 7px;border:1px solid #c0d8e8;text-align:left}
+table td{padding:4px 7px;font-size:9px;border:1px solid #dde;color:#2c3e50;vertical-align:top}
+.status-pill{display:inline-block;padding:1px 6px;border-radius:3px;font-size:8px;
+  font-weight:900;text-transform:uppercase;letter-spacing:.5px;color:#fff;background:${statusColor}}
+
+/* Bottom stamps section */
+.bottom{display:grid;grid-template-columns:1fr 145px 120px;gap:14px;
+  margin-top:10px;padding-top:10px;border-top:1.5px solid #e0ecf4;align-items:center}
+.pay-title{font-size:9px;font-weight:900;color:#2c3e50;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.pay-icons{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px}
+.pay-icon{background:#f5f5f5;border:1px solid #ddd;border-radius:2px;padding:2px 6px;font-size:8px;font-weight:700;color:#2c3e50}
+.secure{background:#e8f5ee;border:1px solid #b8ddc8;border-radius:3px;padding:3px 7px;font-size:8.5px;color:#1a6b3a;font-weight:700;display:inline-block}
+.stamp-col{display:flex;flex-direction:column;align-items:center;gap:2px}
+.stamp-lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#1a6b8a;margin-bottom:2px}
+.duty-col{display:flex;flex-direction:column;align-items:center;gap:2px}
+.duty-lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#c0392b;margin-bottom:2px}
+
+/* Amount strip */
+.amount-strip{display:grid;grid-template-columns:1fr 1fr 1.2fr;border:1.5px solid #cce;margin-top:10px}
+.amt-cell{padding:8px 12px;border-right:1px solid #cce}
+.amt-cell:last-child{border-right:none;background:#1a5276}
+.amt-label{font-size:7.5px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#7a8a99;margin-bottom:3px}
+.amt-cell:last-child .amt-label{color:rgba(255,255,255,.6)}
+.amt-val{font-size:14px;font-weight:900;color:#2c3e50}
+.amt-cell:last-child .amt-val{color:#F2A104;font-size:15px}
+
+/* Footer */
+.inv-footer{text-align:center;font-size:8px;color:#7a8a99;padding:8px;
+  background:#f8fafc;border-top:1px solid #e0ecf4;margin-top:8px;line-height:1.6}
+
+@media print{
+  .print-bar{display:none!important}
+  html,body{height:auto}
+  .page{padding:0}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+}
 </style></head><body>
 <div class="print-bar">
   <button class="btn-print" onclick="window.print()">🖨 Print / Save PDF</button>
   <button class="btn-close" onclick="window.close()">✕ Close</button>
+  <span style="color:rgba(255,255,255,.55);font-size:11px;margin-left:8px">Set paper: A4 · Scale: Fit to page · Margins: Default</span>
 </div>
 <div class="watermark">Fast Forward Logistics</div>
 <div class="page"><div class="content">
+
   <div class="hdr">
-    <div>
-      <img src="assest/images/logo.jpeg" alt="Fast Forward Logistics" class="logo-img"
-        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
-      <div class="logo-fallback">
-        <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 15h13l4-4v4M3 15v3h18v-3M3 15l2-6h9l3 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="7" cy="19" r="1.4" fill="currentColor"/><circle cx="17" cy="19" r="1.4" fill="currentColor"/></svg></div>
-        <div><div class="logo-name">Fast <span>Forward</span> Logistics</div></div>
-      </div>
-      <p class="tn-headline">Tracking Number: ${esc(tn)}</p>
+    <div><img src="assest/images/logo.jpeg" alt="FFL" class="logo-img" onerror="this.style.display='none'"/></div>
+    <div class="hdr-right">
+      <div class="inv-title">Shipment Invoice</div>
+      <div class="inv-sub">International Freight Forwarding</div>
+      <div class="inv-num">REF: ${esc(tn)}</div>
+      <div class="inv-date">Issued: ${issuedFull}</div>
     </div>
-    <div class="photo-box">Shipment<br/>Photo</div>
   </div>
-  <div class="company-band">
-    <p>Fast Forward Logistics Company</p>
-    <p>Address: Baghdad, Iraq · USA · Europe · Worldwide</p>
-    <p>Email: support@fastforwardlogistics.express · Website: www.fastforward.iq</p>
+
+  <div class="co-band">
+    <div class="co-name">FAST FORWARD LOGISTICS</div>
+    <div class="co-info">Empire Business Tower, T3, 2nd Floor, Office #5, Erbil, Iraq &nbsp;·&nbsp; Dubai, UAE &nbsp;·&nbsp; Istanbul, Turkey<br/>
+    support@fastforwardlogistics.express &nbsp;·&nbsp; +1 (943) 210 8427 &nbsp;·&nbsp; www.fastforwardlogistics.express</div>
   </div>
-  <div class="parties-row">
+
+  <div class="parties">
     <div class="party">
-      <div class="party-label">From (Sender)</div>
-      <div class="party-name">${esc(s.shipper_contact || "—")}</div>
-      ${s.shipper_phone ? `<div class="party-line"><strong>Phone:</strong> ${esc(s.shipper_phone)}</div>` : ""}
-      ${s.shipper_email ? `<div class="party-line"><strong>Email:</strong> ${esc(s.shipper_email)}</div>` : ""}
-      <div class="party-line"><strong>Address:</strong> ${esc(s.origin_port || "—")}</div>
+      <div class="p-label">Sender / Shipper</div>
+      <div class="p-name">${esc(s.shipper_contact || "—")}</div>
+      ${s.shipper_phone ? `<div class="p-line"><strong>Tel:</strong> ${esc(s.shipper_phone)}</div>` : ""}
+      ${s.shipper_email ? `<div class="p-line"><strong>Email:</strong> ${esc(s.shipper_email)}</div>` : ""}
+      <div class="p-line"><strong>Origin:</strong> ${esc(s.origin_port || "—")}</div>
+      ${s.etd ? `<div class="p-line"><strong>ETD:</strong> ${fDate(s.etd)}</div>` : ""}
     </div>
     <div class="party">
-      <div class="party-label">To (Consignee)</div>
-      <div class="party-name">${esc(s.consignee_contact || "—")}</div>
-      ${s.consignee_phone ? `<div class="party-line"><strong>Phone:</strong> ${esc(s.consignee_phone)}</div>` : ""}
-      ${s.consignee_email ? `<div class="party-line"><strong>Email:</strong> ${esc(s.consignee_email)}</div>` : ""}
-      <div class="party-line"><strong>Address:</strong> ${esc(s.destination_port || "—")}</div>
+      <div class="p-label">Receiver / Consignee</div>
+      <div class="p-name">${esc(s.consignee_contact || "—")}</div>
+      ${s.consignee_phone ? `<div class="p-line"><strong>Tel:</strong> ${esc(s.consignee_phone)}</div>` : ""}
+      ${s.consignee_email ? `<div class="p-line"><strong>Email:</strong> ${esc(s.consignee_email)}</div>` : ""}
+      <div class="p-line"><strong>Destination:</strong> ${esc(s.destination_port || "—")}</div>
+      ${s.eta ? `<div class="p-line"><strong>ETA:</strong> ${fDate(s.eta)}</div>` : ""}
     </div>
-    <div class="barcode-wrap">
-      <div class="barcode-bars">${barcodeStripes}</div>
+    <div class="party">
+      <div class="barcode-bars">${bars}</div>
       <div class="barcode-num">${esc(tn)}</div>
-      <div style="margin-top:10px">
-        <div class="order-row"><span class="order-key">Order ID:</span><span>${orderNum}</span></div>
-        <div class="order-row"><span class="order-key">Mode:</span><span><span class="mode-pill">${modeLabel}</span></span></div>
-        <div class="order-row"><span class="order-key">Ship Cost:</span><span>${USD(ship)}</span></div>
-        <div class="order-row"><span class="order-key">Tracking:</span><span style="font-family:monospace;font-size:10px">${esc(tn)}</span></div>
-      </div>
     </div>
   </div>
-  <div class="sec-title">Shipment details</div>
-  <table class="cargo"><thead><tr>
-    <th>Qty</th><th>Product / Commodity</th><th>Status</th><th>Description</th>
-    <th>Shipping Cost</th><th>Handling Cost</th><th>Total Cost</th>
+
+  <div class="sec-title">Shipment Details</div>
+  <table><thead><tr>
+    <th>Commodity</th><th>Mode</th><th>Pieces</th><th>Weight</th>
+    <th>B/L No.</th><th>Container No.</th><th>Status</th>
   </tr></thead><tbody><tr>
-    <td>${s.pieces || "1"}</td>
-    <td><strong>${esc(s.commodity || "General cargo")}</strong>${s.weight_kg ? `<br/><span style="color:#7a8a99;font-size:11px">${Number(s.weight_kg).toLocaleString()} kg</span>` : ""}</td>
+    <td><strong>${esc(s.commodity || "General cargo")}</strong></td>
+    <td>${modeLabel}</td><td>${s.pieces || "—"}</td>
+    <td>${s.weight_kg ? Number(s.weight_kg).toLocaleString() + " kg" : "—"}</td>
+    <td style="font-family:monospace;font-size:9px">${esc(s.bill_of_lading || "—")}</td>
+    <td style="font-family:monospace;font-size:9px">${esc(s.container_number || "—")}</td>
     <td><span class="status-pill">${esc(sLabel(s.status))}</span></td>
-    <td>${esc(s.origin_port || "—")} → ${esc(s.destination_port || "—")}${s.vessel_name ? `<br/><span style="color:#7a8a99;font-size:11px">${esc(s.vessel_name)}</span>` : ""}</td>
-    <td style="font-weight:700">${USD(ship)}</td>
-    <td style="font-weight:700">${USD(hand)}</td>
-    <td style="font-weight:900;color:#1a5276">${USD(total)}</td>
-  </tr>${
-    s.bill_of_lading || s.container_number
-      ? `<tr><td colspan="7" style="font-size:11px;color:#7a8a99;padding:6px 10px">
-    ${s.bill_of_lading ? `B/L: <strong style="font-family:monospace">${esc(s.bill_of_lading)}</strong>  ` : ""}
-    ${s.container_number ? `Container: <strong style="font-family:monospace">${esc(s.container_number)}</strong>  ` : ""}
-    ETD: <strong>${fDate(s.etd)}</strong>  ETA: <strong>${fDate(s.eta)}</strong>
-  </td></tr>`
+  </tr></tbody></table>
+
+  ${
+    pastEvts.length
+      ? `<div class="sec-title">Tracking History</div>
+  <table><thead><tr><th>Date / Time</th><th>Location</th><th>Update</th></tr></thead>
+  <tbody>${eventsHtml}</tbody></table>`
       : ""
-  }</tbody></table>
-  ${(s.tracking_events || []).length ? `<div class="sec-title">Tracking history</div>${eventsHtml}` : ""}
-  <div class="bottom-row">
-    <div class="pay-box">
-      <div class="pay-title">Payment Methods:</div>
-      <div class="pay-icons"><span class="pay-icon">VISA</span><span class="pay-icon">MasterCard</span><span class="pay-icon">AMEX</span><span class="pay-icon">PayPal</span><span class="pay-icon">Bank Transfer</span></div>
-      <div class="secure-badge">🔒 Secured · Safe Shopping</div>
+  }
+
+  <div class="bottom">
+    <div>
+      <div class="pay-title">Payment Methods</div>
+      <div class="pay-icons">
+        <span class="pay-icon">VISA</span><span class="pay-icon">MasterCard</span>
+        <span class="pay-icon">AMEX</span><span class="pay-icon">Bank Transfer</span><span class="pay-icon">PayPal</span>
+      </div>
+      <div class="secure">🔒 Secured &amp; Verified</div>
     </div>
     <div class="stamp-col">
-      <div class="stamp-date">Official Stamp / ${issuedFull}</div>
-      <div class="stamp-circle"><div class="stamp-inner"><div class="s1">Fast Forward</div><div class="s2">Logistics</div><div class="s3">Baghdad · Iraq</div><div class="s1">Est. 2009</div></div></div>
+      <div class="stamp-lbl">Official Stamp</div>
+      ${companyStamp}
     </div>
     <div class="duty-col">
-      <div class="duty-title">Stamp Duty:</div>
-      <div class="duty-stamp"><span>STAMP<br/>DUTY</span></div>
+      <div class="duty-lbl">Stamp Duty</div>
+      ${dutyStamp}
     </div>
   </div>
-  <div class="amount-section">
-    <div class="amount-title">Amount Due</div>
-    <div class="amount-row">
-      <div class="amount-col"><div class="a-label">Shipping Cost:</div><div class="a-val">${USD(ship)}</div></div>
-      <div class="amount-col"><div class="a-label">Handling Cost:</div><div class="a-val">${USD(hand)}</div></div>
-      <div class="amount-col"><div class="a-label">Total Amount:</div><div class="a-val">${USD(total)}</div></div>
-    </div>
+
+  <div class="amount-strip">
+    <div class="amt-cell"><div class="amt-label">Shipping Cost</div><div class="amt-val">${USD(ship)}</div></div>
+    <div class="amt-cell"><div class="amt-label">Handling Cost</div><div class="amt-val">${USD(hand)}</div></div>
+    <div class="amt-cell"><div class="amt-label">Total Amount Due</div><div class="amt-val">${USD(total)}</div></div>
   </div>
+
 </div>
-<div class="inv-footer">Fast Forward Logistics · support@fastforwardlogistics.express · +1 (943) 210 8427 · Baghdad, Iraq | Thank you for choosing Fast Forward Logistics.</div>
-</div></body></html>`;
-    const win = window.open("", "_blank", "width=880,height=1100");
+<div class="inv-footer">
+  Fast Forward Logistics &nbsp;·&nbsp; support@fastforwardlogistics.express &nbsp;·&nbsp;
+  +1 (943) 210 8427 &nbsp;·&nbsp; Empire Business Tower, Erbil, Iraq &nbsp;·&nbsp;
+  www.fastforwardlogistics.express &nbsp;|&nbsp; Thank you for choosing Fast Forward Logistics.
+</div>
+</div>
+</body></html>`;
+
+    const win = window.open("", "_blank", "width=900,height=1200");
     if (!win) {
       toast("Pop-up blocked — please allow pop-ups for this page.");
       return;
