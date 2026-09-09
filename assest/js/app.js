@@ -715,18 +715,23 @@
     const holdEvt = pastEventsDesc.find((e) =>
       HOLD_STATUSES.includes(e.status),
     );
+
+    /* Hold is resolved if ANY newer past event exists after the hold event,
+       UNLESS the only newer event has status = invoice_issued.
+       This means adding ANY new tracking update after a hold clears the banner —
+       even if that event has no status set. */
     const eventsAfterHold = holdEvt
       ? pastEventsDesc.filter(
           (e) =>
-            e.status &&
-            !HOLD_STATUSES.includes(e.status) &&
             new Date(e.event_time).getTime() >
-              new Date(holdEvt.event_time).getTime(),
+            new Date(holdEvt.event_time).getTime(),
         )
       : [];
-    const holdResolved = eventsAfterHold.some(
-      (e) => e.status !== "invoice_issued",
-    );
+    /* Check if the only post-hold events are invoice_issued (keep banner) */
+    const onlyInvoiceAfter =
+      eventsAfterHold.length > 0 &&
+      eventsAfterHold.every((e) => e.status === "invoice_issued");
+    const holdResolved = eventsAfterHold.length > 0 && !onlyInvoiceAfter;
     const isHold = HOLD_STATUSES.includes(liveStatus) && !holdResolved;
 
     /* Hold banner config per type */
