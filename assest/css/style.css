@@ -4206,3 +4206,12 @@ nav a,
   border-radius: 4px;
   margin-top: 4px;
 }
+
+/* ── Dynamic stepper stage colors ── */
+.fx-stage.current[style*="--stage-color"] .fx-ic {
+  background: var(--stage-color, var(--amber));
+  color: #fff;
+}
+.fx-stage.current[style*="--stage-color"] .fx-stage-label {
+  color: var(--stage-color, var(--amber));
+}

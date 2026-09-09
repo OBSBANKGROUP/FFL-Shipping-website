@@ -744,13 +744,17 @@
       : null;
     const headTone = isHold
       ? "hold"
-      : holdResolved && resolvedSt
-        ? resolvedSt.tone
+      : holdResolved
+        ? resolvedSt
+          ? resolvedSt.tone
+          : "live"
         : isDone
           ? "done"
           : isAlert
             ? "alert"
-            : st.tone;
+            : st.tone === "hold"
+              ? "live" // safety: never show hold color when not on hold
+              : st.tone || "live";
     const HOLD_CONFIG = {
       on_hold: {
         color: "#c0392b",
@@ -802,10 +806,12 @@
       hDate = bigDate(s.eta);
     }
 
-    /* Current location — from the most recent past event */
+    /* Use resolved status label when hold is cleared */
+    const displaySt = holdResolved && resolvedSt ? resolvedSt : st;
     const currentLocation = currentEvt ? currentEvt.location || "" : "";
     const subLine =
-      esc(st.label) + (currentLocation ? " · " + esc(currentLocation) : "");
+      esc(displaySt.label) +
+      (currentLocation ? " · " + esc(currentLocation) : "");
 
     /* ── Current event highlight box ── */
     const currentEventHtml = currentEvt
@@ -831,51 +837,116 @@
       </div>`
         : "";
 
-    /* ── Flags ── */
-    const flags = (s.alert_flags || []).filter((f) => f.active);
-    const flagStages = flags.map((f, i) => ({
-      key: "flag_" + i,
-      label:
-        f.custom_label ||
-        (FLAG_TYPES[f.type] ? FLAG_TYPES[f.type].label : "Alert"),
-      flagType: f.type,
-      flagColor: FLAG_TYPES[f.type] ? FLAG_TYPES[f.type].color : "#f2a104",
-      flagIcon: FLAG_TYPES[f.type]
-        ? FLAG_TYPES[f.type].icon
-        : FLAG_TYPES.custom.icon,
+    /* ── Dynamic stepper built from actual past events ────────────
+       Each unique status that appeared in past events becomes a stage.
+       Current = last stage. Done = all before it. Special statuses
+       (on_hold, fbi_hold, customs_hold, delayed, exception) get their
+       own coloured icon automatically inserted wherever they happened.
+    ──────────────────────────────────────────────────────────── */
+
+    /* Status → icon mapping */
+    const STATUS_ICON = {
+      booked: `<svg viewBox="0 0 24 24" fill="none"><path d="M8 4h8v3H8zM6 5h2v2H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-2V5h2a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3z" fill="currentColor"/></svg>`,
+      invoice_issued: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M7 8h10M7 12h6M7 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+      preparing_dispatch: `<svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="7" cy="17" r="1.6" stroke="currentColor" stroke-width="1.6"/><circle cx="17.5" cy="17" r="1.6" stroke="currentColor" stroke-width="1.6"/></svg>`,
+      in_warehouse: `<svg viewBox="0 0 24 24" fill="none"><path d="M3 10 12 4l9 6v10H3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M7 20v-6h10v6" stroke="currentColor" stroke-width="1.6"/></svg>`,
+      in_transit: isAir
+        ? `<svg viewBox="0 0 24 24" fill="none"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16Z" fill="currentColor"/></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none"><path d="M3 15h18l-2.2 5H5.2L3 15Zm3-1V9h6m0 5V6l4 2.5V14" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/><path d="M2 21c1.5 0 1.5-1 3-1s1.5 1 3 1 1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+      customs: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+      out_for_delivery: `<svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="7" cy="17" r="1.6" stroke="currentColor" stroke-width="1.6"/><circle cx="17.5" cy="17" r="1.6" stroke="currentColor" stroke-width="1.6"/></svg>`,
+      distribution: `<svg viewBox="0 0 24 24" fill="none"><circle cx="5" cy="18" r="3" stroke="currentColor" stroke-width="1.6"/><circle cx="19" cy="18" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M5 15V9l4-2h6l4 5v3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M5 9h10" stroke="currentColor" stroke-width="1.6"/></svg>`,
+      delivered: `<svg viewBox="0 0 24 24" fill="none"><path d="M3 10 12 4l9 6v10H3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m8.5 14 2.2 2.2L15.5 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+      on_hold: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+      customs_hold: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+      fbi_hold: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+      delayed: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`,
+      exception: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    };
+
+    /* Status → accent color for special statuses */
+    const STATUS_COLOR = {
+      on_hold: "#e74c3c",
+      customs_hold: "#8e44ad",
+      fbi_hold: "#2c3e50",
+      delayed: "#e67e22",
+      exception: "#c0392b",
+      delivered: "#2A9D8F",
+    };
+
+    /* Build stepper from unique statuses seen in past events, in order */
+    const seenStatuses = [];
+    const seenKeys = new Set();
+    pastEvents.forEach((e) => {
+      if (e.status && !seenKeys.has(e.status)) {
+        seenKeys.add(e.status);
+        seenStatuses.push(e.status);
+      }
+    });
+
+    /* If no events have statuses yet, fall back to a logical default path */
+    if (seenStatuses.length === 0) {
+      /* Build minimal path up to current status */
+      const defaultPath = ["booked", "in_transit", "customs", "delivered"];
+      const cur = liveStatus;
+      const curIdx = defaultPath.indexOf(cur);
+      const path =
+        curIdx >= 0 ? defaultPath.slice(0, curIdx + 1) : ["booked", cur];
+      path.forEach((v) => {
+        if (!seenKeys.has(v)) {
+          seenKeys.add(v);
+          seenStatuses.push(v);
+        }
+      });
+    }
+
+    /* Always ensure delivered is at the end if not already showing it */
+    const dynamicStages = seenStatuses.map((v, i) => ({
+      key: v,
+      label: STATUS[v]?.label || v.replace(/_/g, " "),
+      isCurrent: i === seenStatuses.length - 1,
+      isDone: i < seenStatuses.length - 1,
+      color: STATUS_COLOR[v] || null,
+      icon: STATUS_ICON[v] || STATUS_ICON.booked,
     }));
-    const fullStages = [
-      ...BASE_STAGES.slice(0, 4),
-      ...flagStages,
-      BASE_STAGES[4],
-    ];
 
-    let activeIdx = st.stage;
-    if (isDone) activeIdx = fullStages.length - 1;
-    else if (activeIdx > 3) activeIdx = 3 + flagStages.length;
+    /* Add a "Delivered" ghost stage at end if not yet delivered */
+    if (liveStatus !== "delivered") {
+      dynamicStages.push({
+        key: "delivered",
+        label: "Delivered",
+        isCurrent: false,
+        isDone: false,
+        color: null,
+        icon: STATUS_ICON.delivered,
+      });
+    }
 
-    const stepsHtml = fullStages
+    const stepsHtml = dynamicStages
       .map((stage, i) => {
-        const isFlag = stage.key.startsWith("flag_");
-        const done = i < activeIdx || (isDone && i === activeIdx);
-        const current = i === activeIdx && !isDone;
         const cls = [
-          done ? "done" : "",
-          current ? "current" : "",
-          current && isAlert ? "alert" : "",
+          stage.isDone ? "done" : "",
+          stage.isCurrent ? "current" : "",
+          stage.color && stage.isCurrent ? "alert" : "",
         ]
-          .join(" ")
-          .trim();
-        const iconHtml = isFlag ? stage.flagIcon : stageIcon(stage.key, isAir);
-        const style = isFlag ? `--flag-color:${stage.flagColor}` : "";
-        return `<li class="fx-stage${isFlag ? " fx-stage-flag" : ""} ${cls}" style="${style}">
-        <span class="fx-ic">${iconHtml}</span>
+          .filter(Boolean)
+          .join(" ");
+        const colorStyle =
+          stage.color && stage.isCurrent
+            ? `style="--stage-color:${stage.color}"`
+            : "";
+        return `<li class="fx-stage ${cls}" ${colorStyle}>
+        <span class="fx-ic">${stage.icon}</span>
         <span class="fx-stage-label">${esc(stage.label)}</span>
       </li>`;
       })
       .join("");
 
-    const pct = (activeIdx / (fullStages.length - 1)) * 100;
+    const activeIdx = dynamicStages.findIndex((s) => s.isCurrent);
+    const pct =
+      dynamicStages.length > 1
+        ? (activeIdx / (dynamicStages.length - 1)) * 100
+        : 0;
 
     /* ── Travel history — only past events, newest first ── */
     const histGroups = [],
