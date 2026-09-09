@@ -734,7 +734,23 @@
     const holdResolved = eventsAfterHold.length > 0 && !onlyInvoiceAfter;
     const isHold = HOLD_STATUSES.includes(liveStatus) && !holdResolved;
 
-    /* Hold banner config per type */
+    /* When hold is resolved, derive tone from the most recent non-hold event */
+    const resolvedStatus = holdResolved
+      ? eventsAfterHold.find((e) => e.status && e.status !== "invoice_issued")
+          ?.status || s.status
+      : null;
+    const resolvedSt = resolvedStatus
+      ? STATUS[resolvedStatus] || STATUS.in_transit
+      : null;
+    const headTone = isHold
+      ? "hold"
+      : holdResolved && resolvedSt
+        ? resolvedSt.tone
+        : isDone
+          ? "done"
+          : isAlert
+            ? "alert"
+            : st.tone;
     const HOLD_CONFIG = {
       on_hold: {
         color: "#c0392b",
@@ -774,6 +790,9 @@
           : liveStatus === "fbi_hold"
             ? "Shipment under Federal Review"
             : "Shipment on hold";
+      hDate = bigDate(s.eta);
+    } else if (holdResolved) {
+      hLabel = "Estimated delivery";
       hDate = bigDate(s.eta);
     } else if (isAlert) {
       hLabel = "Delivery delayed";
@@ -943,7 +962,7 @@
 
     resultEl.innerHTML = `
       <div class="fx">
-        <div class="fx-head fx-tone-${isHold ? "hold" : isDone ? "done" : isAlert ? "alert" : st.tone}">
+        <div class="fx-head fx-tone-${headTone}">
           <div class="fx-status">
             <p class="fx-status-label">${esc(hLabel)}</p>
             <p class="fx-status-date">${esc(hDate)}</p>
