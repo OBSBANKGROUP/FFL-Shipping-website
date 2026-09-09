@@ -2364,6 +2364,29 @@
           />
         </div>
         <button class="login-btn" id="loginBtn">Sign in</button>
+        <label
+          style="
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 14px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--muted-dk);
+          "
+        >
+          <input
+            type="checkbox"
+            id="rememberMe"
+            style="
+              width: 16px;
+              height: 16px;
+              accent-color: var(--teal);
+              cursor: pointer;
+            "
+          />
+          Remember me on this device
+        </label>
         <p class="login-footer">
           Fast Forward Logistics &copy; 2026 &mdash; Secure Admin Access
         </p>
@@ -3835,6 +3858,8 @@
               <option value="distribution">Distribution</option>
               <option value="delivered">Delivered</option>
               <option value="on_hold">ON HOLD ⚠️</option>
+              <option value="customs_hold">CUSTOMS HOLD 🛃</option>
+              <option value="fbi_hold">FBI HOLD 🚔</option>
               <option value="delayed">Delayed</option>
               <option value="exception">Exception</option>
             </select>
@@ -4008,9 +4033,24 @@
           }, 60);
         }
         if (key === "quotes") {
-          if (typeof renderQuotes === "function") renderQuotes();
+          const _sb2 = getSupabase ? getSupabase() : null;
+          if (_sb2) {
+            _sb2
+              .from("quotes")
+              .select("*")
+              .order("created_at", { ascending: false })
+              .then(({ data }) => {
+                if (data)
+                  localStorage.setItem("ffl_quotes", JSON.stringify(data));
+                if (typeof renderQuotes === "function") renderQuotes();
+              });
+          } else {
+            if (typeof renderQuotes === "function") renderQuotes();
+          }
         }
-        if (key === "users") renderUsers();
+        if (key === "users") {
+          loadUsersFromSupabase().then(renderUsers);
+        }
         if (key === "quickSMS") renderQuickSMS();
       }
       NAV_ITEMS.forEach((b) =>
@@ -4214,10 +4254,30 @@
           s("st-attn").textContent = all.filter((x) =>
             ["delayed", "exception"].includes(x.status),
           ).length;
-        if (s("st-quotes"))
-          s("st-quotes").textContent = JSON.parse(
-            localStorage.getItem("ffl_quotes") || "[]",
-          ).length;
+        const _sbQ = getSupabase ? getSupabase() : null;
+        if (_sbQ) {
+          _sbQ
+            .from("quotes")
+            .select("*")
+            .order("created_at", { ascending: false })
+            .then(({ data }) => {
+              if (data) {
+                localStorage.setItem("ffl_quotes", JSON.stringify(data));
+                if (s("st-quotes")) s("st-quotes").textContent = data.length;
+              }
+            })
+            .catch(() => {
+              if (s("st-quotes"))
+                s("st-quotes").textContent = JSON.parse(
+                  localStorage.getItem("ffl_quotes") || "[]",
+                ).length;
+            });
+        } else {
+          if (s("st-quotes"))
+            s("st-quotes").textContent = JSON.parse(
+              localStorage.getItem("ffl_quotes") || "[]",
+            ).length;
+        }
         if (s("st-booked"))
           s("st-booked").textContent = all.filter(
             (x) => x.status === "booked",
@@ -4633,7 +4693,22 @@
           }
         }
 
-        /* ── Login handler ── */
+        const REMEMBER_KEY = "ffl_admin_remember";
+
+        /* ── Pre-fill if remembered ── */
+        function loadRemembered() {
+          try {
+            const saved = JSON.parse(
+              localStorage.getItem(REMEMBER_KEY) || "null",
+            );
+            if (saved && saved.email) {
+              emailEl.value = saved.email;
+              if (saved.pass) passEl.value = saved.pass;
+              document.getElementById("rememberMe").checked = true;
+            }
+          } catch (_) {}
+        }
+        loadRemembered();
         btnEl.addEventListener("click", doLogin);
         [emailEl, passEl].forEach((el) =>
           el.addEventListener("keydown", (e) => {
@@ -4653,6 +4728,16 @@
           btnEl.textContent = "Signing in…";
           const hash = await sha256(pass);
           if (email === ADMIN_EMAIL && hash === ADMIN_PASS_HASH) {
+            /* Save credentials if remember me is checked */
+            const remember = document.getElementById("rememberMe").checked;
+            if (remember) {
+              localStorage.setItem(
+                REMEMBER_KEY,
+                JSON.stringify({ email, pass: passEl.value }),
+              );
+            } else {
+              localStorage.removeItem(REMEMBER_KEY);
+            }
             setSession();
             showApp();
             if (typeof patchedRefresh === "function")

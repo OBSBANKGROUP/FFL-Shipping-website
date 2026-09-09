@@ -117,13 +117,13 @@
             <circle cx="17" cy="19" r="1.4" fill="currentColor" />
           </svg>
         </span>
-        <!-- <span class="brand-name">Fast&nbsp;Forward <em>Logistics</em></span> -->
+        <span class="brand-name">Fast&nbsp;Forward <em>Logistics</em></span>
       </a>
       <nav class="topnav" id="topnav">
         <a href="#services">Services</a>
         <a href="#process">How it works</a>
         <a href="tracking.html">Track</a>
-        <a href="About.html">About</a>
+        <a href="about.html">About</a>
         <a href="contact.html">Contact</a>
         <a href="#quote" class="nav-cta">Get a quote</a>
       </nav>
@@ -268,7 +268,7 @@
                 FCL and LCL on every major trade lane, with reliable schedules
                 and competitive rates for high-volume cargo.
               </p>
-              <a href="svcocean.html" class="card-link">Get ocean rates →</a>
+              <a href="svc-ocean.html" class="card-link">Get ocean rates →</a>
             </div>
           </article>
 
@@ -288,7 +288,7 @@
                 Time-critical and temperature-controlled air cargo with priority
                 uplift and door-to-door speed.
               </p>
-              <a href="svcair.html" class="card-link">Get air rates →</a>
+              <a href="svc-air.html" class="card-link">Get air rates →</a>
             </div>
           </article>
 
@@ -324,7 +324,7 @@
                 Cross-border trucking and intermodal rail that bridges the first
                 and last mile to the port.
               </p>
-              <a href="svcroad.html" class="card-link">Plan inland →</a>
+              <a href="svc-road.html" class="card-link">Plan inland →</a>
             </div>
           </article>
 
@@ -743,7 +743,7 @@
               />
               <div>
                 <strong>Tony Chahal</strong
-                ><span>Supply Chain Lead, Basra Retail Group</span>
+                ><span>Supply Chain Lead, Accra Retail Group</span>
               </div>
             </figcaption>
           </figure>
@@ -1134,7 +1134,7 @@
                 <circle cx="17" cy="19" r="1.4" fill="currentColor" />
               </svg>
             </span>
-            <!-- <span class="brand-name">Fast&nbsp;Forward <em>Logistics</em></span> -->
+            <span class="brand-name">Fast&nbsp;Forward <em>Logistics</em></span>
           </a>
           <p>
             Global ocean and air freight forwarding, customs, and warehousing —
@@ -1151,7 +1151,7 @@
         </div>
         <div class="footer-col">
           <h4>Company</h4>
-          <a href="About.html">About us</a
+          <a href="about.html">About us</a
           ><a href="tracking.html">Track a shipment</a
           ><a href="quote.html">Get a quote</a
           ><a href="contact.html">Contact</a>
@@ -1380,6 +1380,43 @@
             const all = JSON.parse(localStorage.getItem("ffl_quotes") || "[]");
             all.unshift(data);
             localStorage.setItem("ffl_quotes", JSON.stringify(all));
+            /* Also save to Supabase so it appears on all devices */
+            try {
+              const cfg = window.FFL_CONFIG || {};
+              if (
+                cfg.SUPABASE_URL &&
+                cfg.SUPABASE_ANON_KEY &&
+                window.supabase
+              ) {
+                const _sb = window.supabase.createClient(
+                  cfg.SUPABASE_URL,
+                  cfg.SUPABASE_ANON_KEY,
+                );
+                _sb
+                  .from("quotes")
+                  .insert({
+                    reference: data.reference,
+                    mode: data.mode,
+                    commodity: data.commodity,
+                    origin: data.origin,
+                    destination: data.destination,
+                    weight: data.weight,
+                    ready_date: data.ready_date,
+                    sender_name: data.sender_name,
+                    sender_address: data.sender_address,
+                    receiver_name: data.receiver_name,
+                    receiver_address: data.receiver_address,
+                    email: data.email,
+                    phone: data.phone,
+                    payment: data.payment,
+                    created_at: data.created_at,
+                  })
+                  .then(({ error }) => {
+                    if (error)
+                      console.warn("Quote Supabase save:", error.message);
+                  });
+              }
+            } catch (_e) {}
           } catch (_) {}
           // show success
           $("qfIndicator").style.display = "none";

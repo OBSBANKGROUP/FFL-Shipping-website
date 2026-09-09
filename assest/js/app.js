@@ -259,6 +259,8 @@
     distribution: { label: "Distribution", stage: 3, tone: "live" },
     delivered: { label: "Delivered", stage: 4, tone: "done" },
     on_hold: { label: "ON HOLD", stage: 2, tone: "hold" },
+    customs_hold: { label: "CUSTOMS HOLD", stage: 3, tone: "hold" },
+    fbi_hold: { label: "FBI HOLD", stage: 2, tone: "hold" },
     delayed: { label: "Delayed", stage: 2, tone: "alert" },
     exception: { label: "Exception", stage: 2, tone: "alert" },
   };
@@ -438,12 +440,40 @@
   const quickInput = document.getElementById("quickInput");
   const quickSearch = document.getElementById("quickSearch");
 
+  /* ── Geocode any address via Nominatim (free, no key) ── */
+  const _geoCache = {};
+  async function geocode(address) {
+    if (!address) return null;
+    const key = address.toLowerCase().trim();
+    if (_geoCache[key]) return _geoCache[key];
+    /* Try PORT_COORDS first (instant, no network) */
+    const pc = resolveCoords(address);
+    if (pc) {
+      _geoCache[key] = pc;
+      return pc;
+    }
+    /* Fall back to Nominatim */
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
+      const res = await fetch(url, { headers: { "Accept-Language": "en" } });
+      const data = await res.json();
+      if (data && data[0]) {
+        const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+        _geoCache[key] = coords;
+        return coords;
+      }
+    } catch (e) {
+      console.warn("[FFL Map] Geocode failed:", address, e);
+    }
+    return null;
+  }
+
   /* ── Map instance ── */
   let mapInst = null;
 
-  function buildMap(s) {
-    const originCoords = resolveCoords(s.origin_port);
-    const destCoords = resolveCoords(s.destination_port);
+  async function buildMap(s) {
+    mapWrap.style.display = "block";
+    mapLoading.style.display = "flex";
 
     /* Short labels for badge */
     const originLabel = (s.origin_port || "—")
@@ -457,134 +487,182 @@
     mapOriginLbl.textContent = originLabel;
     mapDestLbl.textContent = destLabel;
 
-    mapWrap.style.display = "block";
-    mapLoading.style.display = "flex";
+    /* Geocode origin and destination in parallel */
+    const [originCoords, destCoords] = await Promise.all([
+      geocode(s.origin_port),
+      geocode(s.destination_port),
+    ]);
 
-    /* Slight delay so layout paints before Leaflet sizes itself */
-    setTimeout(() => {
-      if (mapInst) {
-        mapInst.remove();
-        mapInst = null;
-      }
+    /* Geocode past tracking event locations */
+    const nowMs = Date.now();
+    const pastEvts = (s.tracking_events || [])
+      .filter((e) => new Date(e.event_time).getTime() <= nowMs)
+      .sort((a, b) => new Date(a.event_time) - new Date(b.event_time));
 
-      /* Default to Iraq→world mid-point if coords missing */
-      const fallback = [25.0, 45.0];
-      const oCoords = originCoords || fallback;
-      const dCoords = destCoords || fallback;
+    const evtCoords = await Promise.all(
+      pastEvts.map((e) =>
+        e.location ? geocode(e.location) : Promise.resolve(null),
+      ),
+    );
 
-      /* Centre on midpoint, zoom to fit both points */
-      const midLat = (oCoords[0] + dCoords[0]) / 2;
-      const midLng = (oCoords[1] + dCoords[1]) / 2;
+    /* Small delay so layout paints before Leaflet sizes */
+    await new Promise((r) => setTimeout(r, 60));
+    if (mapInst) {
+      mapInst.remove();
+      mapInst = null;
+    }
 
-      mapInst = L.map("trackMap", {
-        zoomControl: true,
-        scrollWheelZoom: false,
-      }).setView([midLat, midLng], 3);
+    /* Fallback centre if both coords missing */
+    const fallback = [25.0, 45.0];
+    const oCoords = originCoords || fallback;
+    const dCoords = destCoords || fallback;
+    const midLat = (oCoords[0] + dCoords[0]) / 2;
+    const midLng = (oCoords[1] + dCoords[1]) / 2;
 
-      /* OpenStreetMap tiles (free, no key needed) */
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution:
-          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 18,
-      }).addTo(mapInst);
+    mapInst = L.map("trackMap", {
+      zoomControl: true,
+      scrollWheelZoom: false,
+    }).setView([midLat, midLng], 3);
 
-      /* Origin marker — teal circle */
-      const originIcon = L.divIcon({
-        className: "",
-        html: `<div style="width:16px;height:16px;background:#2A9D8F;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
-      });
-      /* Destination marker — amber circle */
-      const destIcon = L.divIcon({
-        className: "",
-        html: `<div style="width:16px;height:16px;background:#F2A104;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
-      });
-      /* Current location pulse (most recent tracking event location) */
-      const pulseIcon = L.divIcon({
-        className: "",
-        html: `<div style="width:14px;height:14px;background:#F2A104;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 0 rgba(242,161,4,.5);animation:pulse-ring 2s infinite"></div>`,
-        iconSize: [14, 14],
-        iconAnchor: [7, 7],
-      });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 18,
+    }).addTo(mapInst);
 
-      if (originCoords) {
-        L.marker(originCoords, { icon: originIcon })
-          .addTo(mapInst)
-          .bindTooltip(`<strong>Origin</strong><br>${esc(originLabel)}`, {
-            permanent: false,
-            direction: "top",
-          });
-      }
-      if (destCoords) {
-        L.marker(destCoords, { icon: destIcon })
-          .addTo(mapInst)
-          .bindTooltip(`<strong>Destination</strong><br>${esc(destLabel)}`, {
-            permanent: false,
-            direction: "top",
-          });
-      }
+    /* ── Icons ── */
+    const originIcon = L.divIcon({
+      className: "",
+      html: `<div style="width:16px;height:16px;background:#2A9D8F;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.35)"></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    });
+    const destIcon = L.divIcon({
+      className: "",
+      html: `<div style="width:16px;height:16px;background:#F2A104;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.35)"></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    });
+    const pulseIcon = L.divIcon({
+      className: "",
+      html: `<div style="width:16px;height:16px;background:#F2A104;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 0 rgba(242,161,4,.6);animation:pulse-ring 2s infinite"></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    });
+    const wayptIcon = L.divIcon({
+      className: "",
+      html: `<div style="width:9px;height:9px;background:#2A9D8F;border:2px solid #fff;border-radius:50%;opacity:.8"></div>`,
+      iconSize: [9, 9],
+      iconAnchor: [4, 4],
+    });
 
-      /* Draw route line */
-      if (originCoords && destCoords) {
-        /* Build waypoints through any known event locations */
-        const nowMs = Date.now();
-        const events = (s.tracking_events || [])
-          .filter((e) => new Date(e.event_time).getTime() <= nowMs)
-          .sort((a, b) => new Date(a.event_time) - new Date(b.event_time));
-        const waypoints = [originCoords];
-        events.forEach((e) => {
-          const c = resolveCoords(e.location);
-          if (c) {
-            const last = waypoints[waypoints.length - 1];
-            if (last[0] !== c[0] || last[1] !== c[1]) waypoints.push(c);
-          }
+    /* ── Place origin + destination markers ── */
+    if (originCoords) {
+      L.marker(originCoords, { icon: originIcon })
+        .addTo(mapInst)
+        .bindTooltip(`<strong>Origin</strong><br>${esc(originLabel)}`, {
+          direction: "top",
         });
-        if (waypoints[waypoints.length - 1][0] !== destCoords[0])
-          waypoints.push(destCoords);
+    }
+    if (destCoords) {
+      L.marker(destCoords, { icon: destIcon })
+        .addTo(mapInst)
+        .bindTooltip(`<strong>Destination</strong><br>${esc(destLabel)}`, {
+          direction: "top",
+        });
+    }
 
-        /* Dashed future route */
-        L.polyline([originCoords, destCoords], {
-          color: "#aaa",
-          weight: 1.5,
-          dashArray: "5 6",
-          opacity: 0.5,
-        }).addTo(mapInst);
+    /* ── Build waypoints from geocoded event locations ── */
+    const waypoints = [];
+    if (originCoords) waypoints.push(originCoords);
 
-        /* Solid travelled route */
-        if (waypoints.length > 1) {
-          L.polyline(waypoints, {
-            color: "#2A9D8F",
-            weight: 3,
-            opacity: 0.85,
-          }).addTo(mapInst);
-
-          /* Pulse at current position (last known waypoint before destination) */
-          const currentPos =
-            waypoints.length >= 2 ? waypoints[waypoints.length - 2] : null;
-          if (
-            currentPos &&
-            (currentPos[0] !== destCoords[0] || currentPos[1] !== destCoords[1])
-          ) {
-            L.marker(currentPos, { icon: pulseIcon })
-              .addTo(mapInst)
-              .bindTooltip(`<strong>Last known position</strong>`, {
-                permanent: false,
-                direction: "top",
-              });
-          }
+    evtCoords.forEach((c, i) => {
+      if (!c) return;
+      const last = waypoints[waypoints.length - 1];
+      if (!last || last[0] !== c[0] || last[1] !== c[1]) {
+        waypoints.push(c);
+        /* Small waypoint dot for each stop */
+        if (i < pastEvts.length - 1) {
+          L.marker(c, { icon: wayptIcon })
+            .addTo(mapInst)
+            .bindTooltip(`${esc(pastEvts[i].location || "")}`, {
+              direction: "top",
+            });
         }
-
-        /* Fit map to show all points */
-        const allPts = [...waypoints, destCoords];
-        mapInst.fitBounds(L.latLngBounds(allPts), { padding: [30, 30] });
       }
+    });
 
-      mapLoading.style.display = "none";
-      mapBadge.style.display = "flex";
-    }, 80);
+    /* Current position = last geocoded event coord (if before destination) */
+    const lastKnownCoord = evtCoords.filter(Boolean).pop() || null;
+    const atDest =
+      lastKnownCoord &&
+      destCoords &&
+      Math.abs(lastKnownCoord[0] - destCoords[0]) < 0.01 &&
+      Math.abs(lastKnownCoord[1] - destCoords[1]) < 0.01;
+
+    if (lastKnownCoord && !atDest) {
+      if (waypoints[waypoints.length - 1]?.[0] !== lastKnownCoord[0])
+        waypoints.push(lastKnownCoord);
+      /* Pulsing dot at current position */
+      L.marker(lastKnownCoord, { icon: pulseIcon, zIndexOffset: 100 })
+        .addTo(mapInst)
+        .bindTooltip(
+          `<strong>Current position</strong><br>${esc(pastEvts[pastEvts.length - 1]?.location || "")}`,
+          { direction: "top", permanent: false },
+        );
+    }
+
+    const allPoints = [...waypoints];
+    if (
+      destCoords &&
+      (!waypoints.length ||
+        waypoints[waypoints.length - 1]?.[0] !== destCoords[0])
+    ) {
+      allPoints.push(destCoords);
+    }
+
+    /* ── Draw lines ── */
+    if (originCoords && destCoords) {
+      /* Full route — dashed grey */
+      L.polyline([originCoords, destCoords], {
+        color: "#9e9e9e",
+        weight: 1.5,
+        dashArray: "6 7",
+        opacity: 0.55,
+      }).addTo(mapInst);
+    }
+
+    /* Travelled portion — solid teal */
+    if (waypoints.length >= 2) {
+      L.polyline(waypoints, {
+        color: "#2A9D8F",
+        weight: 3.5,
+        opacity: 0.9,
+        lineJoin: "round",
+      }).addTo(mapInst);
+    } else if (waypoints.length === 1 && destCoords) {
+      /* Only origin known — still draw a short line to show start */
+      L.polyline([waypoints[0], destCoords], {
+        color: "#2A9D8F",
+        weight: 2,
+        opacity: 0.5,
+        dashArray: "4 5",
+      }).addTo(mapInst);
+    }
+
+    /* ── Fit map to show all relevant points ── */
+    const fitPts = allPoints.filter(Boolean);
+    if (fitPts.length >= 2) {
+      mapInst.fitBounds(L.latLngBounds(fitPts), {
+        padding: [32, 32],
+        maxZoom: 10,
+      });
+    } else if (fitPts.length === 1) {
+      mapInst.setView(fitPts[0], 6);
+    }
+
+    mapLoading.style.display = "none";
+    mapBadge.style.display = "flex";
   }
 
   /* ── Render tracking result ── */
@@ -625,15 +703,72 @@
     const st = STATUS[liveStatus] || STATUS.booked;
     const isDone = st.tone === "done";
     const isAlert = st.tone === "alert";
-    const isHold = st.tone === "hold";
 
-    /* ── Headline ── */
+    /* ── HOLD logic — covers on_hold, customs_hold, fbi_hold ────────
+       All three work the same way:
+       - Show danger banner while hold status is latest
+       - Banner clears when a newer event has a different resolving status
+       - Exception: invoice_issued after a hold keeps the banner
+       - Each hold type gets its own colour and message
+    ──────────────────────────────────────────────────────────── */
+    const HOLD_STATUSES = ["on_hold", "customs_hold", "fbi_hold"];
+    const holdEvt = pastEventsDesc.find((e) =>
+      HOLD_STATUSES.includes(e.status),
+    );
+    const eventsAfterHold = holdEvt
+      ? pastEventsDesc.filter(
+          (e) =>
+            e.status &&
+            !HOLD_STATUSES.includes(e.status) &&
+            new Date(e.event_time).getTime() >
+              new Date(holdEvt.event_time).getTime(),
+        )
+      : [];
+    const holdResolved = eventsAfterHold.some(
+      (e) => e.status !== "invoice_issued",
+    );
+    const isHold = HOLD_STATUSES.includes(liveStatus) && !holdResolved;
+
+    /* Hold banner config per type */
+    const HOLD_CONFIG = {
+      on_hold: {
+        color: "#c0392b",
+        bg: "#fff0f0",
+        border: "#e74c3c",
+        icon: "⚠️",
+        title: "Your shipment is currently ON HOLD",
+        msg: "Your shipment has been placed on hold and requires immediate attention. Please contact our team to resolve this.",
+      },
+      customs_hold: {
+        color: "#6c3483",
+        bg: "#f9f0ff",
+        border: "#8e44ad",
+        icon: "🛃",
+        title: "Your shipment is held by Customs",
+        msg: "Your shipment is currently held by customs authorities for inspection or clearance. Please contact our team for assistance.",
+      },
+      fbi_hold: {
+        color: "#2c3e50",
+        bg: "#f0f3f4",
+        border: "#566573",
+        icon: "🚔",
+        title: "Your shipment is under Federal Review",
+        msg: "Your shipment has been flagged for a federal security review. Please contact our team immediately for guidance and next steps.",
+      },
+    };
+    const holdCfg = HOLD_CONFIG[liveStatus] || HOLD_CONFIG.on_hold;
+
     let hLabel, hDate;
     if (isDone) {
       hLabel = "Delivered";
       hDate = bigDate(currentEvt ? currentEvt.event_time : s.eta);
     } else if (isHold) {
-      hLabel = "Shipment on hold";
+      hLabel =
+        liveStatus === "customs_hold"
+          ? "Shipment held by Customs"
+          : liveStatus === "fbi_hold"
+            ? "Shipment under Federal Review"
+            : "Shipment on hold";
       hDate = bigDate(s.eta);
     } else if (isAlert) {
       hLabel = "Delivery delayed";
@@ -803,7 +938,7 @@
 
     resultEl.innerHTML = `
       <div class="fx">
-        <div class="fx-head fx-tone-${isHold ? "hold" : st.tone}">
+        <div class="fx-head fx-tone-${isHold ? "hold" : isDone ? "done" : isAlert ? "alert" : st.tone}">
           <div class="fx-status">
             <p class="fx-status-label">${esc(hLabel)}</p>
             <p class="fx-status-date">${esc(hDate)}</p>
@@ -823,12 +958,14 @@
         ${
           isHold
             ? `
-        <div class="fx-hold-banner">
-          <div class="fx-hold-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="fx-hold-banner" style="background:${holdCfg.bg};border-color:${holdCfg.border}">
+          <div class="fx-hold-icon" style="background:${holdCfg.color}">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
           <div>
-            <p class="fx-hold-title">⚠️ Your shipment is currently ON HOLD</p>
-            <p class="fx-hold-msg">Your shipment requires attention and has been placed on hold. Please contact our team immediately to resolve this.</p>
-            <a href="contact.html" class="fx-hold-cta">Contact us now →</a>
+            <p class="fx-hold-title" style="color:${holdCfg.color}">${holdCfg.icon} ${holdCfg.title}</p>
+            <p class="fx-hold-msg" style="color:${holdCfg.color}cc">${holdCfg.msg}</p>
+            <a href="contact.html" class="fx-hold-cta" style="background:${holdCfg.color}">Contact us now →</a>
           </div>
         </div>`
             : ""

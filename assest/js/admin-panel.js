@@ -219,7 +219,9 @@
     { v: "out_for_delivery", l: "Out for Delivery" },
     { v: "distribution", l: "Distribution" },
     { v: "delivered", l: "Delivered" },
-    { v: "on_hold", l: "ON HOLD" },
+    { v: "on_hold", l: "ON HOLD ⚠️" },
+    { v: "customs_hold", l: "CUSTOMS HOLD 🛃" },
+    { v: "fbi_hold", l: "FBI HOLD 🚔" },
     { v: "delayed", l: "Delayed" },
     { v: "exception", l: "Exception" },
   ];
@@ -678,7 +680,13 @@
         : s.mode === "road"
           ? "Road / Rail"
           : "Ocean Freight";
-    const statusColor = ["delayed", "exception", "on_hold"].includes(s.status)
+    const statusColor = [
+      "delayed",
+      "exception",
+      "on_hold",
+      "customs_hold",
+      "fbi_hold",
+    ].includes(s.status)
       ? "#c0392b"
       : s.status === "delivered"
         ? "#1a7a4a"
@@ -1289,22 +1297,51 @@ table td{padding:4px 7px;font-size:9px;border:1px solid #dde;color:#2c3e50;verti
   });
 
   /* ════════ QUOTES ════════ */
-  function renderQuotes() {
+  async function renderQuotes() {
+    /* Try Supabase first */
+    const _sb = getSupabase();
+    if (_sb) {
+      try {
+        const { data } = await _sb
+          .from("quotes")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (data) {
+          save(QK, data);
+        }
+      } catch (e) {
+        console.warn("Quote sync error:", e);
+      }
+    }
     const all = load(QK);
     $("quoteList").innerHTML = !all.length
       ? '<div class="empty">No quote requests yet.</div>'
       : all
           .map(
-            (q) =>
-              `<div class="quote-item"><div><p class="q-ref">${esc(q.reference || "—")}</p><p class="q-lane">${esc(q.origin || "Iraq")} → ${esc(q.destination || "—")} · ${esc(q.mode || "")}</p><p class="q-meta">${q.estimate_low ? "$" + q.estimate_low.toLocaleString() + "–$" + q.estimate_high.toLocaleString() : ""} · ${esc(q.name || "")} · ${esc(q.email || "")}</p></div><a href="mailto:${esc(q.email)}" class="btn" style="width:auto;padding:7px 14px">Reply</a></div>`,
+            (q) => `<div class="quote-item">
+          <div>
+            <p class="q-ref">${esc(q.reference || "—")}</p>
+            <p class="q-lane">${esc(q.origin || q.sender_address || "Iraq")} → ${esc(q.destination || q.receiver_address || "—")} · ${esc(q.mode || "")}</p>
+            <p class="q-meta">${esc(q.sender_name || q.name || "")} · ${esc(q.email || "")} · ${esc(q.phone || "")}</p>
+          </div>
+          <a href="mailto:${esc(q.email)}" class="btn" style="width:auto;padding:7px 14px">Reply</a>
+        </div>`,
           )
           .join("");
   }
-  $("clearQuotesBtn").addEventListener("click", () => {
-    if (confirm("Clear all?")) {
-      save(QK, []);
-      renderQuotes();
+  $("clearQuotesBtn").addEventListener("click", async () => {
+    if (!confirm("Clear all quote requests?")) return;
+    const _sb = getSupabase();
+    if (_sb) {
+      try {
+        await _sb
+          .from("quotes")
+          .delete()
+          .neq("id", "00000000-0000-0000-0000-000000000000");
+      } catch (e) {}
     }
+    save(QK, []);
+    renderQuotes();
   });
 
   /* ════════════════════════════════════════════════════
