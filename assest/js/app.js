@@ -993,6 +993,7 @@
       : "";
 
     /* Alert flags notice */
+    const flags = (s.alert_flags || []).filter((f) => f.active);
     const flagsNoticeHtml = flags.length
       ? `
       <div class="fx-flags-notice">
